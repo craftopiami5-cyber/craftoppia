@@ -4,13 +4,8 @@ const cors = require('cors');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
-const multer = require('multer');
-const PDFDocument = require('pdfkit');
-const { Client } = require('pg');
-const FormData = require('form-data');
 const db = require('./db');
 const { MESSAGES: STATIC_MESSAGES } = require('./messages');
-
 
 axios.defaults.timeout = 30000;
 
@@ -19,10 +14,8 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Setup multer for memory storage file handling (broadcast upload)
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
 
+// Multer is lazy-loaded in the route that needs it
 const BASE_DIR = path.join(__dirname, '..');
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8864741035:AAF5BMri8NIWEhJfwUq7DGmkiwQ86zB5o8o";
 const TELEGRAM_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
@@ -658,6 +651,7 @@ async function sendNextQuizQuestion(chatId) {
             }
             
             if (pdfBytes) {
+                const FormData = require('form-data');
                 const form = new FormData();
                 form.append('chat_id', String(chatId));
                 const [lang] = getLangAndStep(reg);
@@ -717,6 +711,7 @@ async function runDbMigration() {
         const host = supabaseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
         DB_URL = `postgresql://postgres:${dbPassword}@db.${host}:6543/postgres`;
     }
+    const { Client } = require('pg');
     const client = new Client({ 
         connectionString: DB_URL,
         ssl: { rejectUnauthorized: false }
@@ -1046,7 +1041,12 @@ app.get('/api/referrers', requireAuth, async (req, res) => {
 });
 
 // Channel Broadcast with Multer (Modified to broadcast to all registered bot users)
-app.post('/api/broadcast', requireAuth, upload.single('file'), async (req, res) => {
+const getUploadMiddleware = () => {
+    const multer = require('multer');
+    return multer({ storage: multer.memoryStorage() }).single('file');
+};
+
+app.post('/api/broadcast', requireAuth, getUploadMiddleware(), async (req, res) => {
     const text = req.body.text || "";
     
     // Fetch all registrations to extract unique chat IDs
@@ -1192,7 +1192,7 @@ app.post('/api/admin/settings', requireAuth, async (req, res) => {
 });
 
 // Admin upload endpoint for bot simulator image uploads
-app.post('/api/admin/upload', requireAuth, upload.single('file'), async (req, res) => {
+app.post('/api/admin/upload', requireAuth, getUploadMiddleware(), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: "No file uploaded." });
     }
@@ -1384,6 +1384,7 @@ app.all('/api/admin/migrate', async (req, res) => {
         const host = supabaseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
         DB_URL = `postgresql://postgres:${dbPassword}@db.${host}:6543/postgres`;
     }
+    const { Client } = require('pg');
     const client = new Client({ 
         connectionString: DB_URL,
         ssl: { rejectUnauthorized: false }
@@ -1970,6 +1971,7 @@ app.post('/api/bot', async (req, res) => {
             try {
                 const pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
                 
+                const FormData = require('form-data');
                 const form = new FormData();
                 form.append('chat_id', chatId);
                 form.append('caption', caption);
