@@ -39,9 +39,13 @@ let COMMANDS_SET = false;
 let DB_MESSAGES = {};
 let simulatorLogs = [];
 
-// Serve static files from public/ at both root and /public paths
-app.use(express.static(path.join(BASE_DIR, 'public')));
-app.use('/public', express.static(path.join(BASE_DIR, 'public')));
+// Note: static files are served by Vercel CDN directly (public/ folder).
+// Express only handles /api/* routes in production.
+// For local dev, express.static serves from public/.
+if (!process.env.VERCEL) {
+    app.use(express.static(path.join(BASE_DIR, 'public')));
+    app.use('/public', express.static(path.join(BASE_DIR, 'public')));
+}
 
 // Authentication Middleware
 function requireAuth(req, res, next) {
@@ -2571,13 +2575,15 @@ if (require.main === module) {
         }
     });
 }
-// Static File Routing — must be LAST so API routes take priority
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(BASE_DIR, 'public', 'dashboard.html'));
-});
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(BASE_DIR, 'public', 'index.html'));
-});
+// Local dev fallback routes (not used in Vercel — CDN handles static files)
+if (!process.env.VERCEL) {
+    app.get('/admin', (req, res) => {
+        res.sendFile(path.join(BASE_DIR, 'public', 'dashboard.html'));
+    });
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(BASE_DIR, 'public', 'index.html'));
+    });
+}
 
 module.exports = app;
