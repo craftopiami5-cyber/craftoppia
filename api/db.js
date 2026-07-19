@@ -357,13 +357,19 @@ async function updateRegistrationStatus(regId, status, inviteLink = null, reject
         if ([200, 201].includes(response.status)) {
             return response.data.length > 0 ? response.data[0] : null;
         }
-        const matched = Object.values(OFFLINE_DB.registrations).find(r => r.id === regId);
-        if (matched) {
-            Object.assign(matched, data);
-            return matched;
-        }
-        return null;
     } catch (e) {
+        if (data.expires_at && e.response && e.response.status === 400) {
+            console.warn("Column expires_at might be missing, retrying without it...");
+            delete data.expires_at;
+            try {
+                const retryResponse = await axios.patch(url, data, { headers: getHeaders(true) });
+                if ([200, 201].includes(retryResponse.status)) {
+                    return retryResponse.data.length > 0 ? retryResponse.data[0] : null;
+                }
+            } catch (retryErr) {
+                console.error("Error updating without expires_at:", retryErr.message);
+            }
+        }
         console.error("Error updating registration status:", e.message);
         const matched = Object.values(OFFLINE_DB.registrations).find(r => r.id === regId);
         if (matched) {
