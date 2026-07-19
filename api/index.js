@@ -1064,39 +1064,47 @@ app.post('/api/broadcast', requireAuth, getUploadMiddleware(), async (req, res) 
         
         const FormData = require('form-data');
         let fileId = null;
+        let successfulFirstChatId = null;
         
-        // Upload the file to Telegram using the first chatId to get a file_id
-        const firstChatId = chatIds[0];
-        const form = new FormData();
-        form.append('chat_id', firstChatId);
-        form.append(isVideo ? 'video' : 'photo', req.file.buffer, { filename: req.file.originalname, contentType: req.file.mimetype });
-        if (text) form.append('caption', text);
-        form.append('parse_mode', 'Markdown');
-        
-        try {
-            const method = isVideo ? 'sendVideo' : 'sendPhoto';
-            const res = await axios.post(`${TELEGRAM_API_URL}/${method}`, form, {
-                headers: form.getHeaders()
-            });
-            if (res.data && res.data.ok) {
-                successCount++;
-                const msg = res.data.result;
-                if (isVideo && msg.video) {
-                    fileId = msg.video.file_id;
-                } else if (!isVideo && msg.photo && msg.photo.length > 0) {
-                    fileId = msg.photo[msg.photo.length - 1].file_id;
+        // Upload the file to Telegram using the first valid chatId to get a file_id
+        for (const chatId of chatIds) {
+            const form = new FormData();
+            form.append('chat_id', chatId);
+            // Use safe ascii filename to prevent parsing issues
+            const safeFileName = "upload" + (isVideo ? ".mp4" : ".jpg");
+            form.append(isVideo ? 'video' : 'photo', req.file.buffer, { filename: safeFileName, contentType: req.file.mimetype });
+            if (text) form.append('caption', text);
+            form.append('parse_mode', 'Markdown');
+            
+            try {
+                const method = isVideo ? 'sendVideo' : 'sendPhoto';
+                const res = await axios.post(`${TELEGRAM_API_URL}/${method}`, form, {
+                    headers: form.getHeaders()
+                });
+                if (res.data && res.data.ok) {
+                    successCount++;
+                    const msg = res.data.result;
+                    if (isVideo && msg.video) {
+                        fileId = msg.video.file_id;
+                    } else if (!isVideo && msg.photo && msg.photo.length > 0) {
+                        fileId = msg.photo[msg.photo.length - 1].file_id;
+                    }
+                    successfulFirstChatId = chatId;
+                    break; // Upload succeeded! We have the file_id!
                 }
-            } else {
-                throw new Error("Telegram API rejected the first upload.");
+            } catch (uploadErr) {
+                console.warn(`Failed to upload media to user ${chatId}. Reason:`, uploadErr.response ? JSON.stringify(uploadErr.response.data) : uploadErr.message);
+                failCount++;
             }
-        } catch (uploadErr) {
-            console.error("Failed to upload media to Telegram:", uploadErr.message);
-            return res.status(500).json({ message: "Failed to upload media to Telegram." });
+        }
+        
+        if (!fileId) {
+            return res.status(500).json({ message: "Failed to upload media to Telegram. Check if users have blocked the bot." });
         }
         
         // Broadcast using the file_id for the rest of the users
-        if (fileId && chatIds.length > 1) {
-            const remainingChatIds = chatIds.slice(1);
+        const remainingChatIds = chatIds.filter(id => id !== successfulFirstChatId);
+        if (remainingChatIds.length > 0) {
             
             // Process in chunks to avoid Vercel timeouts and rate limits
             const chunkSize = 30;
