@@ -20,5 +20,11 @@
       "src": "/(.*)",
       "dest": "/api/index.js"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/send_daily_quiz",
+      "schedule": "0 10 * * *"
+    }
   ]
 }

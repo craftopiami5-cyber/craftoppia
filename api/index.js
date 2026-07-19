@@ -334,13 +334,20 @@ async function generateApprovedInviteLinks(regName) {
     }
 
     const channelId = settings.telegram_channel_id || TELEGRAM_CHANNEL_ID || process.env.TELEGRAM_CHANNEL_ID || "-1004429840481";
-    const durationDays = parseInt(settings.access_duration_days) || 30;
-    const expireDate = Math.floor(Date.now() / 1000) + Math.max(1, durationDays) * 24 * 3600;
+    // Generate main channel invite link dynamically
+    const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
+        chat_id: channelId,
+        member_limit: 1,
+        expire_date: expireDate,
+        name: `Main Link for ${regName || 'Student'}`
+    });
 
-    // User requested to use a specific static channel link
-    let inviteLink1 = "https://t.me/+31igY5nhqoYzNDZk";
-
-    // Generate second group invite link
+    let inviteLink1 = "";
+    if (inviteRes1 && inviteRes1.ok) {
+        inviteLink1 = inviteRes1.result.invite_link;
+    } else {
+        console.error("Failed to generate main invite link:", inviteRes1 ? inviteRes1.description : "Unknown error");
+    }
     const secondGroupId = "-5500423208";
     const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
         chat_id: secondGroupId,
@@ -1457,27 +1464,38 @@ app.all('/api/cron/send_daily_quiz', async (req, res) => {
     }
         
     const [regs] = await db.getRegistrationsPaginated(1, 1000, "approved");
-    for (const r of regs) {
-        const chatId = r.chat_id;
-        const prog = await db.getUserQuizProgress(chatId);
-        if (prog && !prog.is_completed) {
-            const day = prog.current_day || 1;
-            const qIndex = prog.current_question_index || 0;
-            const qs = await db.getQuestionsByDay(day);
-            if (qIndex >= qs.length && qs.length > 0) {
-                const lastCompleted = prog.last_completed_at;
-                if (lastCompleted) {
-                    const lastDt = parseIsoDatetime(lastCompleted);
-                    const now = new Date();
-                    if (lastDt && lastDt.toDateString() !== now.toDateString()) {
-                        await db.upsertUserQuizProgress(chatId, { current_day: day + 1, current_question_index: 0 });
+    
+    // Process in chunks to avoid Vercel 10s timeout while respecting Telegram rate limits
+    const chunkSize = 30;
+    for (let i = 0; i < regs.length; i += chunkSize) {
+        const chunk = regs.slice(i, i + chunkSize);
+        await Promise.all(chunk.map(async (r) => {
+            const chatId = r.chat_id;
+            try {
+                const prog = await db.getUserQuizProgress(chatId);
+                if (prog && !prog.is_completed) {
+                    const day = prog.current_day || 1;
+                    const qIndex = prog.current_question_index || 0;
+                    const qs = await db.getQuestionsByDay(day);
+                    
+                    if (qIndex >= qs.length && qs.length > 0) {
+                        const lastCompleted = prog.last_completed_at;
+                        if (lastCompleted) {
+                            const lastDt = parseIsoDatetime(lastCompleted);
+                            const now = new Date();
+                            if (lastDt && lastDt.toDateString() !== now.toDateString()) {
+                                await db.upsertUserQuizProgress(chatId, { current_day: day + 1, current_question_index: 0 });
+                                await sendNextQuizQuestion(chatId);
+                            }
+                        }
+                    } else {
                         await sendNextQuizQuestion(chatId);
                     }
                 }
-            } else {
-                await sendNextQuizQuestion(chatId);
+            } catch (err) {
+                console.error(`Error processing quiz for ${chatId}:`, err.message);
             }
-        }
+        }));
     }
     
     return res.json({ success: true });
