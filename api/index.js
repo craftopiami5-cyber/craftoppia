@@ -76,16 +76,9 @@ async function sendTelegramRequest(method, payload) {
         return response.data;
     } catch (e) {
         console.error(`Telegram API error (${method}):`, e.response ? e.response.data : e.message);
-        
-        // Mock success response to keep the local simulation running smoothly offline
         return {
-            ok: true,
-            result: {
-                message_id: Math.floor(Math.random() * 1000000),
-                chat: { id: payload.chat_id },
-                text: payload.text || "Action executed",
-                invite_link: `https://t.me/joinchat/mock_invite_${Math.random().toString(36).substring(2,10)}`
-            }
+            ok: false,
+            description: e.response ? JSON.stringify(e.response.data) : e.message
         };
     }
 }
@@ -1261,6 +1254,17 @@ app.post('/api/approve', requireAuth, async (req, res) => {
             parse_mode: "Markdown",
             reply_markup: getMenuKeyboard(lang)
         });
+        
+        // Trigger Day 1 quiz immediately upon approval
+        try {
+            const prog = await db.getUserQuizProgress(reg.chat_id);
+            if (!prog) {
+                await db.upsertUserQuizProgress(reg.chat_id, { joined_channel: true, current_day: 1, current_question_index: 0 });
+                await sendNextQuizQuestion(reg.chat_id);
+            }
+        } catch (err) {
+            console.error("Error triggering day 1 quiz on approve:", err.message);
+        }
         
         return res.json({ success: true, invite_link: inviteLink });
     } catch (err) {
