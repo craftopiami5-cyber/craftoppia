@@ -12,7 +12,7 @@ const db = require('./db');
 const { MESSAGES: STATIC_MESSAGES } = require('./messages');
 
 
-axios.defaults.timeout = 5000;
+axios.defaults.timeout = 30000;
 
 const app = express();
 app.use(cors());
@@ -31,7 +31,7 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-craftopia-token-key-12345!";
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co").replace(/\/$/, "");
-const SUPABASE_KEY = process.env.SUPABASE_KEY || "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ";
+const SUPABASE_KEY = (process.env.SUPABASE_KEY && process.env.SUPABASE_KEY !== "sb_publishable_GhwTyM1ilJr0M2VbusxDPQ_5wA9LycM" ? process.env.SUPABASE_KEY : "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ");
 
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 let BOT_USERNAME = null;
@@ -163,8 +163,8 @@ async function setupBotCommands() {
 // Auto-seed default languages and translations if DB tables exist but are empty
 async function autoSeedDatabaseTranslations() {
     try {
-        const key = process.env.SUPABASE_KEY || "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ";
-        const url = (process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co").replace(/\/$/, "");
+        const key = SUPABASE_KEY;
+        const url = SUPABASE_URL;
         const headers = {
             "apikey": key,
             "Authorization": `Bearer ${key}`,
@@ -711,7 +711,7 @@ async function sendNextQuizQuestion(chatId) {
 async function runDbMigration() {
     let DB_URL = process.env.DATABASE_URL;
     if (!DB_URL) {
-        const supabaseUrl = process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co";
+        const supabaseUrl = SUPABASE_URL;
         const dbPassword = process.env.DB_PASSWORD || "Dl1gdEE4ekuJK1EO";
         const host = supabaseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
         DB_URL = `postgresql://postgres:${dbPassword}@db.${host}:6543/postgres`;
@@ -860,6 +860,7 @@ app.post('/api/bot/simulate-message', async (req, res) => {
 
 // Login Step 1
 app.post('/api/login/step1', async (req, res) => {
+    console.log(`[API] POST /api/login/step1 called with username: ${req.body ? req.body.username : 'undefined'}`);
     try {
         const { username, password } = req.body;
         
@@ -900,17 +901,18 @@ app.post('/api/login/step1', async (req, res) => {
             `Your verification code is: \`${code}\`\n\n` +
             `*Note: This code expires in 10 minutes. If this wasn't you, please change your password immediately.*`
         );
-        const telegramRes = await sendTelegramRequest("sendMessage", {
+        sendTelegramRequest("sendMessage", {
             chat_id: chatId,
             text: botMsg,
             parse_mode: "Markdown"
+        }).then(telegramRes => {
+            if (!telegramRes || !telegramRes.ok) {
+                console.warn(`[WARNING] Failed to send verification code via Telegram. Code is: ${code}`);
+            }
+        }).catch(err => {
+            console.error("Error sending Telegram code:", err.message);
         });
-        
-        if (!telegramRes || !telegramRes.ok) {
-            console.warn(`[WARNING] Failed to send verification code via Telegram. Code is: ${code}`);
-            return res.json({ success: true, message: "Verification code generated. (Check server console/logs for code)" });
-        }
-        
+
         return res.json({ success: true, message: "Verification code sent to your Telegram chat." });
     } catch (handlerErr) {
         console.error("Crash in login step 1:", handlerErr);
@@ -1318,6 +1320,7 @@ app.get('/api/languages', requireAuth, async (req, res) => {
 });
 
 app.post('/api/languages', requireAuth, async (req, res) => {
+    console.log(`[API] POST /api/languages called with body:`, req.body);
     const { code, name, is_active } = req.body;
     if (!code || !name) {
         return res.status(400).json({ message: "Code and name are required" });
@@ -1381,7 +1384,7 @@ app.all('/api/admin/migrate', async (req, res) => {
         
     let DB_URL = process.env.DATABASE_URL;
     if (!DB_URL) {
-        const supabaseUrl = process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co";
+        const supabaseUrl = SUPABASE_URL;
         const dbPassword = process.env.DB_PASSWORD || "Dl1gdEE4ekuJK1EO";
         const host = supabaseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
         DB_URL = `postgresql://postgres:${dbPassword}@db.${host}:6543/postgres`;
