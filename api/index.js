@@ -334,7 +334,6 @@ async function generateApprovedInviteLinks(regName) {
     const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
         chat_id: channelId,
         member_limit: 1,
-        expire_date: expireDate,
         name: `Main Link for ${regName || 'Student'}`
     });
 
@@ -348,7 +347,6 @@ async function generateApprovedInviteLinks(regName) {
     const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
         chat_id: secondGroupId,
         member_limit: 1,
-        expire_date: expireDate,
         name: `Group Link for ${regName || 'Student'}`
     });
 
@@ -2019,6 +2017,11 @@ app.post('/api/bot', async (req, res) => {
     if (!update.message) return res.send("OK");
 
     const message = update.message;
+    
+    // Ignore messages from groups or channels (bot is only used to generate links)
+    if (message.chat && message.chat.type !== "private") {
+        return res.send("OK");
+    }
     const chatId = message.chat.id;
     const text = (message.text || "").trim();
     const contact = message.contact;
@@ -2102,6 +2105,7 @@ app.post('/api/bot', async (req, res) => {
     }
 
     const reg = await db.getRegistration(chatId);
+    /* Lifetime access: Disable expiration check
     if (reg && reg.status === "approved" && reg.expires_at) {
         const now = new Date();
         const expiry = new Date(reg.expires_at);
@@ -2115,6 +2119,7 @@ app.post('/api/bot', async (req, res) => {
             return res.send("OK");
         }
     }
+    */
     const [lang, currentStep] = getLangAndStep(reg);
 
     // Common menu commands
