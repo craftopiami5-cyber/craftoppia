@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Craftopia Admin Dashboard</title>
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <div class="logo-text">Craftopia Admin Panel</div>
+    </div>
+    <div class="user-profile">
+      <span style="font-size: 13px; color: var(--text-muted);">Signed in as: <b>admin</b></span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabBtnSubmissions" onclick="switchMainTab('submissions')">Submissions 🧾</button>
+      <button class="tab-btn" id="tabBtnReferrals" onclick="switchMainTab('referrals')">Users & Referrals 👥</button>
+      <button class="tab-btn" id="tabBtnBroadcaster" onclick="switchMainTab('broadcaster')">Bot Broadcaster 📣</button>
+      <button class="tab-btn" id="tabBtnQuizBuilder" onclick="switchMainTab('quizBuilder')">Quiz Builder 🎓</button>
+      <button class="tab-btn" id="tabBtnTranslations" onclick="switchMainTab('translations')">Translations 🌐</button>
+      <button class="tab-btn" id="tabBtnSettings" onclick="switchMainTab('settings')">Settings ⚙️</button>
+      <button class="tab-btn" id="tabBtnSimulator" onclick="switchMainTab('simulator')">Bot Simulator 🤖</button>
+    </div>
+
+    <!-- 1. SUBMISSIONS TAB -->
+    <div class="tab-section active" id="sectionSubmissions">
+      <div class="stats-grid">
+        <div class="stat-card active" id="statCardAll" onclick="selectStatusFilter('all')">
+          <span class="stat-label">Total Submissions</span>
+          <span class="stat-value" id="countTotal">0</span>
+        </div>
+        <div class="stat-card" id="statCardPending" onclick="selectStatusFilter('pending')">
+          <span class="stat-label">Pending Approval</span>
+          <span class="stat-value stat-pending" id="countPending">0</span>
+        </div>
+        <div class="stat-card" id="statCardApproved" onclick="selectStatusFilter('approved')">
+          <span class="stat-label">Approved</span>
+          <span class="stat-value stat-approved" id="countApproved">0</span>
+        </div>
+        <div class="stat-card" id="statCardDeclined" onclick="selectStatusFilter('declined')">
+          <span class="stat-label">Declined</span>
+          <span class="stat-value stat-declined" id="countDeclined">0</span>
+        </div>
+      </div>
+
+      <div class="actions-bar">
+        <input type="text" class="search-box" id="searchInput" placeholder="Search name, phone, receipt or chat ID..." oninput="handleSearch()">
+        <div class="refresh-text">
+          <div class="dot-pulse"></div>
+          <span id="statusText">Syncing...</span>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Receipt Number</th>
+              <th>Referred By</th>
+              <th>Status</th>
+              <th>Invite Link / Reason</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="registrationsBody">
+            <tr>
+              <td colspan="8" class="no-data">Loading registrations...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-bar">
+        <div class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</div>
+        <div class="pagination-buttons">
+          <button class="btn-page" id="btnPrev" onclick="changePage(-1)" disabled>Previous</button>
+          <span class="page-indicator" id="pageIndicator">Page 1</span>
+          <button class="btn-page" id="btnNext" onclick="changePage(1)" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. USERS & REFERRALS TAB -->
+    <div class="tab-section" id="sectionReferrals">
+      <div class="actions-bar">
+        <h2 style="font-size: 20px; font-weight: 700;">Affiliate Referrers Summary</h2>
+        <button class="btn-logout" style="background:var(--primary); color:#fff; border:none;" onclick="fetchReferrers()">Force Refresh 🔄</button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>User Name</th>
+              <th>Chat ID</th>
+              <th>Phone Number</th>
+              <th>Total Referred Persons</th>
+              <th>Receipts Approved</th>
+            </tr>
+          </thead>
+          <tbody id="referralsBody">
+            <tr>
+              <td colspan="5" class="no-data">Loading referrers summary...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3. BOT BROADCASTER TAB -->
+    <div class="tab-section" id="sectionBroadcaster">
+      <div class="broadcast-container">
+        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Broadcast to Bot Users</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">
+          Compose a message and optionally attach an image or video to send directly to all registered users of your Telegram Bot.
+        </p>
+
+        <form id="broadcastForm">
+          <div class="form-group">
+            <label class="form-label">Message Caption / Text</label>
+            <textarea class="form-textarea" id="broadcastText" placeholder="Write your announcement here... (Supports Markdown)"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Attach Image or Video (Optional)</label>
+            <div class="file-drop-area" id="dropArea">
+              <span id="dropText">Drag and drop file here, or click to browse</span>
+              <input type="file" class="file-input" id="broadcastFile" accept="image/*,video/*" onchange="handleFileSelect(event)">
+              <img id="imagePreview" class="file-preview" alt="Preview">
+              <video id="videoPreview" class="file-preview" controls></video>
+            </div>
+            <div id="fileInfo" style="margin-top:8px; font-size:12px; color:var(--text-muted); display:none;"></div>
+          </div>
+
+          <button type="submit" class="btn-submit" id="btnBroadcastPublish">Broadcast to Users</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 4. QUIZ BUILDER TAB -->
+    <div class="tab-section" id="sectionQuizBuilder">
+      <div class="header-actions" style="margin-bottom: 24px;">
+        <h2 style="font-size: 20px; font-weight: 700;">Quiz Builder 🎓</h2>
+        <button class="btn-approve" onclick="openAddQuestionModal()">Add New Question ➕</button>
+      </div>
+      
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Question</th>
+              <th>Options</th>
+              <th>Correct Answer</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="questionsTableBody">
+            <!-- Questions loaded via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 5. SETTINGS TAB -->
+    <div class="tab-section" id="sectionSettings">
+      <div class="card">
+        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Payment Settings</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 24px;">Configure the payment details shown to users during registration.</p>
+
+        <form id="paymentSettingsForm">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Payment Amount (e.g., 500 ETB)</label>
+            <input type="text" id="setAmount" class="search-box" style="width:100%; background:var(--input-bg);" required>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Private Telegram Channel ID</label>
+            <input type="text" id="setChannelId" class="search-box" style="width:100%; background:var(--input-bg);" placeholder="e.g. -1001234567890" required>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Course Access Duration (Days)</label>
+            <input type="number" id="setAccessDuration" class="search-box" style="width:100%; background:var(--input-bg);" min="1" placeholder="e.g. 30" required>
+          </div>
+          
+          <h3 style="font-size: 16px; font-weight: 600; margin-top: 24px; margin-bottom: 16px;">Telebirr Settings</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Account Name</label>
+              <input type="text" id="setTelebirrName" class="search-box" style="width:100%; background:var(--input-bg);" required>
+            </div>
+            <div>
+              <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Account Number</label>
+              <input type="text" id="setTelebirrNumber" class="search-box" style="width:100%; background:var(--input-bg);" required>
+            </div>
+          </div>
+
+          <h3 style="font-size: 16px; font-weight: 600; margin-top: 24px; margin-bottom: 16px;">CBE Settings</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+            <div>
+              <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Account Name</label>
+              <input type="text" id="setCbeName" class="search-box" style="width:100%; background:var(--input-bg);" required>
+            </div>
+            <div>
+              <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Account Number</label>
+              <input type="text" id="setCbeNumber" class="search-box" style="width:100%; background:var(--input-bg);" required>
+            </div>
+          </div>
+
+          <h3 style="font-size: 16px; font-weight: 600; margin-top: 24px; margin-bottom: 16px;">Certificate Settings</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Program Name (English)</label>
+              <input type="text" id="setCertProgramEn" class="search-box" style="width:100%; background:var(--input-bg);" placeholder="e.g. Hand Craft & Art" required>
+            </div>
+            <div>
+              <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Program Name (Amharic)</label>
+              <input type="text" id="setCertProgramAm" class="search-box" style="width:100%; background:var(--input-bg);" placeholder="e.g. የእጅ ሥራና ጥበብ ስልጠና" required>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Duration (English, e.g. "4 Weeks")</label>
+              <input type="text" id="setCertDurationEn" class="search-box" style="width:100%; background:var(--input-bg);" placeholder="e.g. 4 Weeks" required>
+            </div>
+            <div>
+              <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Duration (Amharic, e.g. "4 ሳምንት")</label>
+              <input type="text" id="setCertDurationAm" class="search-box" style="width:100%; background:var(--input-bg);" placeholder="e.g. 4 ሳምንት" required>
+            </div>
+          </div>
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Upload Signature Image (PNG with transparent bg recommended)</label>
+            <div style="display: flex; gap: 16px; align-items: center;">
+              <input type="file" id="uploadSignature" accept="image/*" class="search-box" style="width: auto; background: var(--input-bg);" onchange="handleSignatureSelect(event)">
+              <div style="background: rgba(255,255,255,0.05); border: 1px dashed var(--card-border); border-radius: 8px; padding: 4px; display: flex; align-items: center; justify-content: center; min-width: 120px; height: 60px;">
+                <img id="signaturePreview" style="max-width: 110px; max-height: 50px; display: none;" alt="Signature Preview">
+                <span id="noSignatureText" style="font-size: 11px; color: var(--text-muted);">No Signature</span>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit" style="margin-top: 10px;">Save Settings</button>
+        </form>
+      </div>
+      <div class="broadcast-container" style="max-width: 550px; margin-top: 32px;">
+        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Account Settings</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">
+          Change your admin panel password. You will need to request a verification code which will be sent to your linked Telegram account.
+        </p>
+
+        <form id="changePasswordForm">
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input type="password" class="search-box" style="width:100%; background:var(--input-bg);" id="newPassword" placeholder="Enter new password" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" class="search-box" style="width:100%; background:var(--input-bg);" id="confirmPassword" placeholder="Confirm new password" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Verification Code</span>
+              <button type="button" class="btn-logout" style="background:var(--primary); color:#fff; border:none; padding:4px 10px; font-size:11px;" id="btnRequestPassCode" onclick="requestPasswordCode()">Request Code</button>
+            </label>
+            <input type="text" class="search-box" style="width:100%; background:var(--input-bg);" id="passwordCode" placeholder="Enter 6-digit code sent to your Telegram" required maxlength="6">
+          </div>
+
+          <button type="submit" class="btn-submit" id="btnSavePassword" style="margin-top:10px;">Update Password</button>
+        </form>
+      </div>
+
+      <!-- Telegram Linkage Card -->
+      <div class="broadcast-container" style="max-width: 550px; margin-top: 32px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 24px;">
+        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Telegram Account Linkage</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">
+          Link your Telegram account to this admin profile to receive verification codes and bot notifications.
+        </p>
+
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <button type="button" class="btn-submit" id="btnGenerateLinkCode" onclick="generateTelegramLinkCode()" style="width: 100%;">Generate Linkage Code 🔑</button>
+          
+          <div id="linkCodeDisplay" style="display:none; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:10px; padding:16px; text-align:center;">
+            <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:8px;">Your Linkage Code</div>
+            <div id="linkCodeValue" style="font-size:24px; font-weight:800; letter-spacing:2px; color:var(--primary); font-family:monospace; margin-bottom:8px;">LINK-XXXXXX</div>
+            <div style="font-size:11px; color:var(--text-muted);">
+              Expires in 10 minutes.<br>
+              Send this to the Telegram bot:<br>
+              <code style="display:block; margin-top:8px; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; font-size:12px; color:#fff;" id="linkInstructionText">/auth username password code</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 6. TRANSLATIONS TAB -->
+    <div class="tab-section" id="sectionTranslations">
+      <div style="display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start;">
+        <!-- Left Column: Manage Languages -->
+        <div class="card" style="margin-bottom: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="font-size: 18px; font-weight: 700;">Languages</h2>
+            <button class="btn-logout" style="background:var(--primary); color:#fff; border:none; padding: 6px 12px; font-size:12px; border-radius:8px;" onclick="openAddLanguageModal()">Add +</button>
+          </div>
+          <div id="languagesList" style="display:flex; flex-direction:column; gap:12px;">
+            <!-- Languages rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Right Column: Edit Translation Strings -->
+        <div class="card" style="margin-bottom: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+            <h2 style="font-size: 18px; font-weight: 700;">Edit Translations</h2>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <select id="selectLangEdit" class="search-box" style="background:var(--input-bg); min-width:150px; border-radius:10px; color:var(--text-main); border:1px solid var(--card-border); padding:8px;" onchange="handleLangEditChange()">
+                <!-- Loaded dynamically -->
+              </select>
+              <input type="text" id="translationSearch" class="search-box" style="width:220px; border-radius:10px; border:1px solid var(--card-border);" placeholder="Search keys or text..." oninput="filterTranslations()">
+            </div>
+          </div>
+          <form id="translationsForm" onsubmit="saveTranslations(event)">
+            <div id="translationsEditorList" style="max-height: 520px; overflow-y: auto; padding-right:8px; display:flex; flex-direction:column; gap:16px; margin-bottom: 20px;">
+              <!-- Keys and Textareas rendered dynamically -->
+            </div>
+            <button type="submit" class="btn-submit" id="btnSaveTranslations">Save Translations</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. BOT SIMULATION TAB -->
+    <div class="tab-section" id="sectionSimulator">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+        <!-- Left Column: Simulator Controls -->
+        <div class="card" style="margin-bottom: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 24px;">
+          <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Simulate Telegram User</h2>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Mock Chat ID (User ID)</label>
+            <input type="number" class="search-box" style="width:100%; padding:10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main);" id="simChatId" value="999888">
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Predefined Commands</label>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              <button class="btn-logout" style="background:#4f46e5; color:#fff; border:none; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer;" onclick="sendSimulatedText('/start')">/start</button>
+              <button class="btn-logout" style="background:#4f46e5; color:#fff; border:none; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer;" onclick="sendSimulatedText('/submit')">/submit</button>
+              <button class="btn-logout" style="background:#4f46e5; color:#fff; border:none; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer;" onclick="sendSimulatedText('/refer')">/refer</button>
+              <button class="btn-logout" style="background:#4f46e5; color:#fff; border:none; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer;" onclick="sendSimulatedText('/status')">/status</button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Send Custom Text Message</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" class="search-box" style="flex:1; padding:10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main);" id="simMessageText" placeholder="Type a message to the bot...">
+              <button class="btn-action btn-approve" style="padding:10px 16px; font-size:12px; border-radius:8px; border:none; background:var(--success); color:#fff; cursor:pointer;" onclick="sendSimulatedCustomText()">Send</button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Simulate Share Contact</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+              <input type="text" class="search-box" style="padding:10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main);" id="simContactName" placeholder="Name (e.g. John)">
+              <input type="text" class="search-box" style="padding:10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main);" id="simContactPhone" placeholder="Phone (e.g. +251911...)">
+            </div>
+            <button class="btn-action btn-approve" style="width:100%; padding:10px; font-size:12px; border-radius:8px; border:none; background:var(--success); color:#fff; cursor:pointer;" onclick="sendSimulatedContact()">Share Contact 📞</button>
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Simulate Send Photo Receipt</label>
+            <div style="display:flex; gap:8px;">
+              <input type="file" class="search-box" style="flex:1; padding:6px 10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main); font-size:12px;" id="simPhotoFile" accept="image/*">
+              <button class="btn-action btn-approve" style="padding:10px 16px; font-size:12px; border-radius:8px; border:none; background:var(--success); color:#fff; cursor:pointer;" onclick="sendSimulatedPhoto()">Send Photo 🖼️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Simulated Chat View -->
+        <div class="card" style="margin-bottom: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 24px; display:flex; flex-direction:column; height: 500px;">
+          <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Chat History</h2>
+          <div id="simChatHistory" style="flex:1; overflow-y:auto; padding:12px; border-radius:12px; background:rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px; margin-bottom:12px;">
+            <!-- Messages rendered dynamically -->
+          </div>
+          <button class="btn-logout" style="background:#ff4a4a; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; width:100%;" onclick="clearSimHistory()">Clear Chat History</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Rejection Modal -->
+  <div class="modal-overlay" id="declineModal">
+    <div class="modal-card">
+      <div class="modal-header">Decline Registration</div>
+      <div class="modal-body">
+        <p style="margin-bottom: 12px; font-size: 14px; color: var(--text-muted);">
+          Please provide a reason for declining this receipt. The user will receive this reason on Telegram.
+        </p>
+        <textarea class="modal-textarea" id="declineReasonInput" placeholder="e.g. The receipt number you provided is invalid or has already been used."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" onclick="closeDeclineModal()">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" id="confirmDeclineBtn">Decline Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Question Modal -->
+  <div class="modal-overlay" id="addQuestionModal">
+    <div class="modal-card">
+      <div class="modal-header">Add New Question</div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Day Number (e.g., 1 for Day 1)</label>
+          <input type="number" class="search-box" style="width:100%; background:var(--input-bg);" id="qDayNumber" min="1" required>
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Question Text</label>
+          <textarea class="modal-textarea" id="qText" placeholder="Enter your question here..."></textarea>
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Options (one per line)</label>
+          <textarea class="modal-textarea" id="qOptions" placeholder="Option A&#10;Option B&#10;Option C"></textarea>
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Correct Option Index (0 = First Option, 1 = Second...)</label>
+          <input type="number" class="search-box" style="width:100%; background:var(--input-bg);" id="qCorrectIndex" min="0" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" onclick="closeAddQuestionModal()">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" id="confirmAddQuestionBtn" style="background:var(--success);border-color:var(--success);">Save Question</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Language Modal -->
+  <div class="modal-overlay" id="addLanguageModal">
+    <div class="modal-card">
+      <div class="modal-header">Add New Language</div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Language Code (e.g. 'or' for Oromo, 'fr' for French)</label>
+          <input type="text" class="search-box" style="width:100%; background:var(--input-bg);" id="langCodeInput" placeholder="e.g. or" required>
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Language Name (e.g. 'Oromo', 'French')</label>
+          <input type="text" class="search-box" style="width:100%; background:var(--input-bg);" id="langNameInput" placeholder="e.g. Afaan Oromoo" required>
+        </div>
+        <div class="form-group" style="margin-top: 16px; display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="langActiveInput" checked style="width:18px; height:18px; cursor:pointer;">
+          <label class="form-label" style="margin-bottom:0; cursor:pointer;" for="langActiveInput">Is Active (Visible to users)</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" onclick="closeAddLanguageModal()">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" id="confirmAddLanguageBtn" onclick="saveNewLanguage()" style="background:var(--success);border-color:var(--success);">Save Language</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>

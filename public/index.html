@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Craftopia Admin Portal - Login</title>
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/login.css">
+</head>
+<body>
+  <div class="bg-decorations">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div class="logo">Craftopia Admin</div>
+        <div class="subtitle" id="formSubtitle">Enter credentials to verify session</div>
+      </div>
+
+      <!-- STEP 1: CREDENTIALS INPUT -->
+      <div class="step-section active" id="step1">
+        <form id="step1Form">
+          <div class="form-group">
+            <label class="form-label" for="username">Username</label>
+            <input class="form-input" type="text" id="username" placeholder="e.g. admin" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-input" type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button class="btn" type="submit" id="btnStep1">
+            <span class="btn-text">Verify Password</span>
+            <span class="btn-loader"></span>
+          </button>
+        </form>
+      </div>
+
+      <!-- STEP 2: 2FA CODE VERIFICATION -->
+      <div class="step-section" id="step2">
+        <div class="code-instruction">
+          We have sent a 6-digit verification code to your linked Telegram account. Please enter it below to complete login.
+        </div>
+        <form id="step2Form">
+          <div class="form-group">
+            <label class="form-label" for="verificationCode">Verification Code</label>
+            <input class="form-input" type="text" id="verificationCode" maxlength="6" pattern="\d{6}" placeholder="e.g. 123456" required autocomplete="one-time-code">
+          </div>
+          <button class="btn" type="submit" id="btnStep2">
+            <span class="btn-text">Verify & Login</span>
+            <span class="btn-loader"></span>
+          </button>
+          <button class="btn" type="button" style="background:rgba(255,255,255,0.05); color:var(--text-main); margin-top:10px; box-shadow:none;" onclick="backToStep1()">
+            Back
+          </button>
+        </form>
+      </div>
+
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+  </div>
+
+  <script src="/login.js"></script>
+</body>
+</html>

@@ -41,6 +41,7 @@ let simulatorLogs = [];
 
 // Helper to serve public folder
 app.use('/public', express.static(path.join(BASE_DIR, 'public')));
+app.use(express.static(path.join(BASE_DIR, 'public')));
 
 // Authentication Middleware
 function requireAuth(req, res, next) {
@@ -797,12 +798,6 @@ async function runStartups() {
 }
 runStartups();
 
-// Static File Routing
-app.get('/favicon.ico', (req, res) => res.status(204).end());
-app.get('/', (req, res) => res.sendFile(path.join(BASE_DIR, 'index.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(BASE_DIR, 'dashboard.html')));
-app.get('/index.html', (req, res) => res.sendFile(path.join(BASE_DIR, 'index.html')));
-app.get('/dashboard.html', (req, res) => res.sendFile(path.join(BASE_DIR, 'dashboard.html')));
 
 // Simulator endpoints
 app.get('/api/bot/simulator-logs', (req, res) => {
@@ -2576,5 +2571,13 @@ if (require.main === module) {
         }
     });
 }
+// Static File Routing — must be LAST so API routes take priority
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(BASE_DIR, 'public', 'dashboard.html'));
+});
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(BASE_DIR, 'public', 'index.html'));
+});
 
 module.exports = app;
