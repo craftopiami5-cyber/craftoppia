@@ -860,57 +860,66 @@ app.post('/api/bot/simulate-message', async (req, res) => {
 
 // Login Step 1
 app.post('/api/login/step1', async (req, res) => {
-    const { username, password } = req.body;
-    
-    const adminRec = await db.getAdmin(username);
-    if (!adminRec || adminRec.password !== password) {
-        return res.status(401).json({ message: "Invalid username or password" });
-    }
+    try {
+        const { username, password } = req.body;
         
-    let chatId = adminRec.telegram_chat_id;
-    if (!chatId && ADMIN_CHAT_ID) {
-        chatId = ADMIN_CHAT_ID;
-        await db.linkAdminChat(username, chatId);
-    }
-    if (!chatId) {
-        return res.status(400).json({
-            error: "no_chat_linked",
-            message: "Your Telegram account is not linked yet. Please open the bot on Telegram and type: /Auth <username> <password> to link your account."
+        const adminRec = await db.getAdmin(username);
+        if (!adminRec || adminRec.password !== password) {
+            return res.status(401).json({ message: "Invalid username or password" });
+        }
+            
+        let chatId = adminRec.telegram_chat_id;
+        if (!chatId && ADMIN_CHAT_ID) {
+            chatId = ADMIN_CHAT_ID;
+            await db.linkAdminChat(username, chatId);
+        }
+        if (!chatId) {
+            return res.status(400).json({
+                error: "no_chat_linked",
+                message: "Your Telegram account is not linked yet. Please open the bot on Telegram and type: /Auth <username> <password> to link your account."
+            });
+        }
+            
+        const code = generateVerificationCode();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+        
+        await db.setAdminVerificationCode(username, code, expiresAt);
+        
+        const fs = require('fs');
+        try {
+            fs.writeFileSync(path.join(__dirname, 'last_verification_code.txt'), code, 'utf8');
+        } catch (fsErr) {
+            console.error("Failed to write verification code to file:", fsErr.message);
+        }
+        
+        console.log(`\n========================================\n[AUTH] Admin Verification Code for ${username}: ${code}\n========================================\n`);
+        
+        const botMsg = (
+            `🔒 **Admin Dashboard Verification Code**\n\n` +
+            `Someone is attempting to log in to the admin panel.\n` +
+            `Your verification code is: \`${code}\`\n\n` +
+            `*Note: This code expires in 10 minutes. If this wasn't you, please change your password immediately.*`
+        );
+        const telegramRes = await sendTelegramRequest("sendMessage", {
+            chat_id: chatId,
+            text: botMsg,
+            parse_mode: "Markdown"
+        });
+        
+        if (!telegramRes || !telegramRes.ok) {
+            console.warn(`[WARNING] Failed to send verification code via Telegram. Code is: ${code}`);
+            return res.json({ success: true, message: "Verification code generated. (Check server console/logs for code)" });
+        }
+        
+        return res.json({ success: true, message: "Verification code sent to your Telegram chat." });
+    } catch (handlerErr) {
+        console.error("Crash in login step 1:", handlerErr);
+        return res.status(500).json({
+            error: "internal_server_error",
+            message: handlerErr.message,
+            stack: handlerErr.stack
         });
     }
-        
-    const code = generateVerificationCode();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    
-    await db.setAdminVerificationCode(username, code, expiresAt);
-    
-    const fs = require('fs');
-    try {
-        fs.writeFileSync(path.join(__dirname, 'last_verification_code.txt'), code, 'utf8');
-    } catch (fsErr) {
-        console.error("Failed to write verification code to file:", fsErr.message);
-    }
-    
-    console.log(`\n========================================\n[AUTH] Admin Verification Code for ${username}: ${code}\n========================================\n`);
-    
-    const botMsg = (
-        `🔒 **Admin Dashboard Verification Code**\n\n` +
-        `Someone is attempting to log in to the admin panel.\n` +
-        `Your verification code is: \`${code}\`\n\n` +
-        `*Note: This code expires in 10 minutes. If this wasn't you, please change your password immediately.*`
-    );
-    const telegramRes = await sendTelegramRequest("sendMessage", {
-        chat_id: chatId,
-        text: botMsg,
-        parse_mode: "Markdown"
-    });
-    
-    if (!telegramRes || !telegramRes.ok) {
-        console.warn(`[WARNING] Failed to send verification code via Telegram. Code is: ${code}`);
-        return res.json({ success: true, message: "Verification code generated. (Check server console/logs for code)" });
-    }
-    
-    return res.json({ success: true, message: "Verification code sent to your Telegram chat." });
 });
 
 // Login Step 2
