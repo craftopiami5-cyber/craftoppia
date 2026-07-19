@@ -1,5 +1,5 @@
 -- Craftopia Registrations Schema (Updated with Admin Table)
--- Copy and paste this script into your Supabase SQL Editor (https://supabase.com/dashboard/project/gmvzwakcouuwvbapjtso/sql) and click "Run".
+-- Copy and paste this script into your Supabase SQL Editor (https://supabase.com/dashboard/project/pgnxsgysnvrgsbuecesc/sql) and click "Run".
 
 -- 1. Create the registrations table (or update it if it already exists)
 CREATE TABLE IF NOT EXISTS registrations (

@@ -3,8 +3,8 @@ const axios = require('axios');
 const { MESSAGES: STATIC_MESSAGES } = require('./messages');
 
 
-const SUPABASE_URL = (process.env.SUPABASE_URL || "https://gmvzwakcouuwvbapjtso.supabase.co").replace(/\/$/, "");
-const SUPABASE_KEY = process.env.SUPABASE_KEY || "sb_publishable_GhwTyM1ilJr0M2VbusxDPQ_5wA9LycM";
+const SUPABASE_URL = (process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co").replace(/\/$/, "");
+const SUPABASE_KEY = process.env.SUPABASE_KEY || "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ";
 
 axios.defaults.timeout = 5000;
 

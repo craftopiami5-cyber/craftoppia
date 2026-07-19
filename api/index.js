@@ -30,8 +30,8 @@ const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-craftopia-token-key-12345!";
-const SUPABASE_URL = (process.env.SUPABASE_URL || "https://gmvzwakcouuwvbapjtso.supabase.co").replace(/\/$/, "");
-const SUPABASE_KEY = process.env.SUPABASE_KEY || "sb_publishable_GhwTyM1ilJr0M2VbusxDPQ_5wA9LycM";
+const SUPABASE_URL = (process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co").replace(/\/$/, "");
+const SUPABASE_KEY = process.env.SUPABASE_KEY || "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ";
 
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 let BOT_USERNAME = null;
@@ -163,8 +163,8 @@ async function setupBotCommands() {
 // Auto-seed default languages and translations if DB tables exist but are empty
 async function autoSeedDatabaseTranslations() {
     try {
-        const key = process.env.SUPABASE_KEY || "sb_publishable_GhwTyM1ilJr0M2VbusxDPQ_5wA9LycM";
-        const url = (process.env.SUPABASE_URL || "https://gmvzwakcouuwvbapjtso.supabase.co").replace(/\/$/, "");
+        const key = process.env.SUPABASE_KEY || "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ";
+        const url = (process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co").replace(/\/$/, "");
         const headers = {
             "apikey": key,
             "Authorization": `Bearer ${key}`,
@@ -711,7 +711,7 @@ async function sendNextQuizQuestion(chatId) {
 async function runDbMigration() {
     let DB_URL = process.env.DATABASE_URL;
     if (!DB_URL) {
-        const supabaseUrl = process.env.SUPABASE_URL || "https://gmvzwakcouuwvbapjtso.supabase.co";
+        const supabaseUrl = process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co";
         const dbPassword = process.env.DB_PASSWORD || "Dl1gdEE4ekuJK1EO";
         const host = supabaseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
         DB_URL = `postgresql://postgres:${dbPassword}@db.${host}:6543/postgres`;
@@ -1381,7 +1381,7 @@ app.all('/api/admin/migrate', async (req, res) => {
         
     let DB_URL = process.env.DATABASE_URL;
     if (!DB_URL) {
-        const supabaseUrl = process.env.SUPABASE_URL || "https://gmvzwakcouuwvbapjtso.supabase.co";
+        const supabaseUrl = process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co";
         const dbPassword = process.env.DB_PASSWORD || "Dl1gdEE4ekuJK1EO";
         const host = supabaseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
         DB_URL = `postgresql://postgres:${dbPassword}@db.${host}:6543/postgres`;
