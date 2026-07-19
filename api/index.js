@@ -1062,46 +1062,66 @@ app.post('/api/broadcast', requireAuth, getUploadMiddleware(), async (req, res) 
         const mimetype = req.file.mimetype;
         const isVideo = filename.endsWith(".mp4") || filename.endsWith(".mov") || filename.endsWith(".avi") || filename.endsWith(".mkv") || filename.endsWith(".gif") || mimetype.includes("video");
         
-        // Upload media to Supabase Storage
-        const fileName = `broadcast_${Date.now()}_${req.file.originalname.toLowerCase().replace(/[^a-z0-9.]/g, "_")}`;
-        const storageUrl = `${SUPABASE_URL}/storage/v1/object/receipts/${fileName}`;
-        let publicUrl = "";
+        const FormData = require('form-data');
+        let fileId = null;
+        
+        // Upload the file to Telegram using the first chatId to get a file_id
+        const firstChatId = chatIds[0];
+        const form = new FormData();
+        form.append('chat_id', firstChatId);
+        form.append(isVideo ? 'video' : 'photo', req.file.buffer, { filename: req.file.originalname, contentType: req.file.mimetype });
+        if (text) form.append('caption', text);
+        form.append('parse_mode', 'Markdown');
+        
         try {
-            const uploadRes = await axios.post(storageUrl, req.file.buffer, {
-                headers: {
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": `Bearer ${SUPABASE_KEY}`,
-                    "Content-Type": req.file.mimetype
-                }
+            const method = isVideo ? 'sendVideo' : 'sendPhoto';
+            const res = await axios.post(`${TELEGRAM_API_URL}/${method}`, form, {
+                headers: form.getHeaders()
             });
-            if (uploadRes.status === 200 || uploadRes.status === 201) {
-                publicUrl = `${SUPABASE_URL}/storage/v1/object/public/receipts/${fileName}`;
+            if (res.data && res.data.ok) {
+                successCount++;
+                const msg = res.data.result;
+                if (isVideo && msg.video) {
+                    fileId = msg.video.file_id;
+                } else if (!isVideo && msg.photo && msg.photo.length > 0) {
+                    fileId = msg.photo[msg.photo.length - 1].file_id;
+                }
             } else {
-                throw new Error(`Upload status ${uploadRes.status}`);
+                throw new Error("Telegram API rejected the first upload.");
             }
         } catch (uploadErr) {
-            console.error("Broadcast media upload to Supabase failed:", uploadErr.message);
-            return res.status(500).json({ message: `Supabase storage upload failed: ${uploadErr.message}` });
+            console.error("Failed to upload media to Telegram:", uploadErr.message);
+            return res.status(500).json({ message: "Failed to upload media to Telegram." });
         }
         
-        for (const chatId of chatIds) {
-            const method = isVideo ? 'sendVideo' : 'sendPhoto';
-            const payload = {
-                chat_id: chatId,
-                caption: text,
-                parse_mode: 'Markdown',
-                [isVideo ? 'video' : 'photo']: publicUrl
-            };
-            try {
-                const resJson = await sendTelegramRequest(method, payload);
-                if (resJson && resJson.ok) {
-                    successCount++;
-                } else {
-                    failCount++;
-                }
-            } catch (e) {
-                console.error(`Failed to send broadcast media to ${chatId}:`, e.message);
-                failCount++;
+        // Broadcast using the file_id for the rest of the users
+        if (fileId && chatIds.length > 1) {
+            const remainingChatIds = chatIds.slice(1);
+            
+            // Process in chunks to avoid Vercel timeouts and rate limits
+            const chunkSize = 30;
+            for (let i = 0; i < remainingChatIds.length; i += chunkSize) {
+                const chunk = remainingChatIds.slice(i, i + chunkSize);
+                await Promise.all(chunk.map(async (chatId) => {
+                    const method = isVideo ? 'sendVideo' : 'sendPhoto';
+                    const payload = {
+                        chat_id: chatId,
+                        caption: text,
+                        parse_mode: 'Markdown',
+                        [isVideo ? 'video' : 'photo']: fileId
+                    };
+                    try {
+                        const resJson = await sendTelegramRequest(method, payload);
+                        if (resJson && resJson.ok) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                        }
+                    } catch (e) {
+                        console.error(`Failed to send broadcast media to ${chatId}:`, e.message);
+                        failCount++;
+                    }
+                }));
             }
         }
     } else {
