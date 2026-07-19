@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Craftopia Handcrafts School Certificate</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Cinzel:wght@600;700&display=swap');
+
+        body {
+            background-color: #cbd7d0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .certificate-canvas {
+            width: 1050px;
+            height: 740px;
+            background-color: #ffffff;
+            padding: 30px 40px;
+            box-sizing: border-box;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+
+        /* ==========================================================================
+           GOLD FOIL MULTI-BORDER SYSTEM (UNIFORM HATCH PATTERN ON ALL 4 SIDES)
+           ========================================================================= */
+        .gold-border-top, .gold-border-bottom {
+            position: absolute;
+            left: 115px;
+            right: 115px;
+            height: 16px;
+            background: repeating-linear-gradient(
+                to right,
+                #e5b842 0px,
+                #e5b842 2px,
+                transparent 2px,
+                transparent 5px
+            );
+            border-top: 2px solid #e5b842;
+            border-bottom: 2px solid #e5b842;
+        }
+        .gold-border-top { top: 34px; }
+        .gold-border-bottom { bottom: 34px; }
+
+        .gold-border-left, .gold-border-right {
+            position: absolute;
+            top: 115px;
+            bottom: 115px;
+            width: 16px;
+            background: repeating-linear-gradient(
+                to bottom,
+                #e5b842 0px,
+                #e5b842 2px,
+                transparent 2px,
+                transparent 5px
+            );
+            border-left: 2px solid #e5b842;
+            border-right: 2px solid #e5b842;
+        }
+        .gold-border-left { left: 45px; }
+        .gold-border-right { right: 45px; }
+
+        .border-pin {
+            position: absolute;
+            color: #e5b842;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 15;
+        }
+        .pin-t-l { top: 32px; left: 195px; }
+        .pin-t-r { top: 32px; right: 195px; }
+        .pin-b-l { bottom: 32px; left: 175px; }
+        .pin-b-r { bottom: 32px; right: 200px; }
+        .pin-l-t { left: 43px; top: 160px; transform: rotate(90deg); }
+        .pin-l-b { left: 43px; bottom: 180px; transform: rotate(90deg); }
+        .pin-r-t { right: 43px; top: 160px; transform: rotate(90deg); }
+        .pin-r-b { right: 43px; bottom: 180px; transform: rotate(90deg); }
+
+        /* ==========================================================================
+           ADVANCED HIGH-FIDELITY BAROQUE CORNER FOIL REPLICATION
+           ========================================================================= */
+        .corner-foil {
+            position: absolute;
+            width: 160px;
+            height: 160px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .corner-foil::before {
+            content: '';
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            background: 
+                radial-gradient(circle at 70% 70%, #fff 2%, transparent 8%),
+                radial-gradient(ellipse at center, #ffd66b 20%, #cc9c25 50%, #8c6707 80%);
+            border: 3px solid #d4a731;
+            box-shadow: 
+                3px 3px 8px rgba(0,0,0,0.2),
+                inset 0 0 15px rgba(255,255,255,0.7),
+                inset -4px -4px 10px rgba(0,0,0,0.15);
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.15));
+        }
+
+        .corner-foil::after {
+            content: '✿';
+            position: absolute;
+            font-size: 52px;
+            color: #cc9c25;
+            text-shadow: 
+                2px 2px 0px #fff7c2, 
+                -1px -1px 0px #8c6707,
+                0px 0px 8px #ffd66b;
+            font-weight: bold;
+        }
+
+        .corner-flourish-wing {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border: 4px double #cc9c25;
+            background: linear-gradient(45deg, #ffd66b, #b58814);
+            box-shadow: inset 0 0 5px #fff;
+        }
+
+        .top-left { top: 5px; left: 5px; }
+        .top-left::before {
+            border-radius: 65% 35% 85% 35% / 85% 35% 65% 35%;
+            transform: rotate(-15deg);
+        }
+        .top-left::after { top: 35px; left: 35px; }
+        .top-left .corner-flourish-wing {
+            top: 0; left: 85px;
+            border-radius: 0 50% 0 50%;
+            transform: skewX(-20deg);
+        }
+
+        .top-right { top: 5px; right: 5px; }
+        .top-right::before {
+            right: 0;
+            border-radius: 35% 65% 35% 85% / 35% 85% 35% 65%;
+            transform: rotate(15deg);
+        }
+        .top-right::after { top: 35px; right: 35px; transform: rotate(90deg); }
+        .top-right .corner-flourish-wing {
+            top: 0; right: 85px;
+            border-radius: 50% 0 50% 0;
+            transform: skewX(20deg);
+        }
+
+        .bottom-left { bottom: 5px; left: 5px; }
+        .bottom-left::before {
+            bottom: 0;
+            border-radius: 35% 85% 35% 65% / 35% 65% 35% 85%;
+            transform: rotate(-75deg);
+        }
+        .bottom-left::after { bottom: 35px; left: 35px; transform: rotate(-90deg); }
+        .bottom-left .corner-flourish-wing {
+            bottom: 0; left: 85px;
+            border-radius: 50% 0 50% 0;
+            transform: skewX(20deg);
+        }
+
+        .bottom-right { bottom: 5px; right: 5px; }
+        .bottom-right::before {
+            bottom: 0; right: 0;
+            border-radius: 85% 35% 65% 35% / 65% 35% 85% 35%;
+            transform: rotate(75deg);
+        }
+        .bottom-right::after { bottom: 35px; right: 35px; transform: rotate(180deg); }
+        .bottom-right .corner-flourish-wing {
+            bottom: 0; right: 85px;
+            border-radius: 0 50% 0 50%;
+            transform: skewX(-20deg);
+        }
+
+        /* ==========================================================================
+           EMBEDDED LOGO COMPONENT WITH DECREASED SIZE
+           ========================================================================= */
+        .logo-wrapper {
+            position: absolute;
+            left: 30px;
+            top: -2px;
+            width: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-wrapper img {
+            width: 110px; /* Decreased width to better fit the layout balance */
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+
+        /* ==========================================================================
+           TEXT COLORS & TYPOGRAPHY ARCHITECTURE
+           ========================================================================= */
+        .inner-content-area {
+            height: 100%;
+            width: 100%;
+            padding: 20px 40px;
+            box-sizing: border-box;
+        }
+
+        .header-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .heading-text-group {
+            width: 100%;
+            max-width: 650px;
+            margin: 0 auto;
+            margin-left: 175px;
+        }
+        .institution-amharic {
+            font-family: 'Noto Sans Ethiopic', sans-serif;
+            font-size: 19px;
+            font-weight: 700;
+            color: #008751;
+            margin: 0 0 1px 0;
+        }
+        .institution-english {
+            font-size: 13px;
+            font-weight: 700;
+            color: #005a36;
+            letter-spacing: 0.8px;
+            margin: 0 0 6px 0;
+        }
+        .document-title-amharic {
+            font-family: 'Noto Sans Ethiopic', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #008751;
+            margin: 0 0 1px 0;
+        }
+        .document-title-english {
+            font-size: 12px;
+            font-weight: 700;
+            color: #005a36;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        /* Narrative Splits */
+        .main-narrative-grid {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-top: 35px;
+        }
+
+        .narrative-column {
+            width: 45%;
+        }
+
+        .triple-pillar-divider {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            position: absolute;
+            left: 49.5%;
+            top: -10px;
+            height: 270px;
+        }
+        .pillar-line { width: 1.5px; background-color: #005a36; }
+        .pillar-line.center-tall { transform: scaleY(1.1); }
+
+        .amharic-body-text {
+            font-family: 'Noto Sans Ethiopic', sans-serif;
+            text-align: center;
+            line-height: 2.7;
+            font-size: 14px;
+            color: #005a36;
+            font-weight: 700;
+        }
+        .english-body-text {
+            text-align: center;
+            line-height: 2.7;
+            font-size: 11px;
+            color: #005a36;
+            font-weight: 700;
+            letter-spacing: 0.1px;
+        }
+
+        .label-marker {
+            font-size: 21px;
+            font-weight: 700;
+            color: #005a36;
+        }
+        .label-marker.amh { font-family: 'Noto Sans Ethiopic', sans-serif; }
+
+        .fill-blank-line {
+            display: inline-block;
+            border-bottom: 1px solid #005a36;
+            height: 18px;
+            vertical-align: bottom;
+        }
+        .dotted-blank-line {
+            display: inline-block;
+            border-bottom: 1px dashed #005a36;
+            height: 18px;
+            vertical-align: bottom;
+        }
+
+        /* Footer System */
+        .footer-base-wrap {
+            margin-top: 45px;
+            padding: 0 35px;
+        }
+
+        .footer-upper-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 25px;
+        }
+
+        .date-container-left {
+            font-family: 'Noto Sans Ethiopic', sans-serif;
+            font-size: 13.5px;
+            color: #005a36;
+            font-weight: 700;
+        }
+        .date-container-right {
+            font-size: 11.5px;
+            color: #005a36;
+            font-weight: 700;
+        }
+
+        .signature-center-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        .signature-interactive-box {
+            font-size: 12px;
+            color: #005a36;
+            font-weight: 700;
+        }
+
+        .brand-authenticity-tag {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 8px;
+            color: #bfa361;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="certificate-canvas">
+    <div class="gold-border-top"></div>
+    <div class="gold-border-bottom"></div>
+    <div class="gold-border-left"></div>
+    <div class="gold-border-right"></div>
+
+    <div class="border-pin pin-t-l">✛</div>
+    <div class="border-pin pin-t-r">✛</div>
+    <div class="border-pin pin-b-l">✛</div>
+    <div class="border-pin pin-b-r">✛</div>
+    <div class="border-pin pin-l-t">✛</div>
+    <div class="border-pin pin-l-b">✛</div>
+    <div class="border-pin pin-r-t">✛</div>
+    <div class="border-pin pin-r-b">✛</div>
+
+    <div class="corner-foil top-left"><div class="corner-flourish-wing"></div></div>
+    <div class="corner-foil top-right"><div class="corner-flourish-wing"></div></div>
+    <div class="corner-foil bottom-left"><div class="corner-flourish-wing"></div></div>
+    <div class="corner-foil bottom-right"><div class="corner-flourish-wing"></div></div>
+
+    <div class="inner-content-area">
+        
+        <div class="header-container">
+            <div class="logo-wrapper">
+                <img src="C:\Users\Administrator\Desktop\Projects\craftopia\IMG_0892.PNG" alt="Craftopia Logo">
+            </div>
+            
+            <div class="heading-text-group">
+                <h1 class="institution-amharic">ክራፍቶፒያ የእደጥበብ ሙያዎች ማሰልጠኛ ተቋም</h1>
+                <h2 class="institution-english">CRAFTOPIA HANDCRAFTS SCHOOL</h2>
+                <h3 class="document-title-amharic">የአጭር ጊዜ ስልጠና የምስክር ወረቀት</h3>
+                <h4 class="document-title-english">CERTIFICATE OF SHORT TERM TRAINING</h4>
+            </div>
+        </div>
+
+        <div class="main-narrative-grid">
+            
+            <div class="narrative-column">
+                <div style="margin-bottom: 12px; display: flex; align-items: flex-end;">
+                    <span class="label-marker amh">ለ</span>
+                    <div class="fill-blank-line" style="width: 88%; margin-left: 10px;"></div>
+                </div>
+                <div class="amharic-body-text">
+                    በክራፍቶፒያ የእደጥበብ ማሰልጠኛ ተቋም <br>
+                    በአጭር ጊዜ ስልጠና ፕሮግራም ለ <div class="dotted-blank-line" style="width: 95px;"></div> ሳምንት <br>
+                    የተሰጠውን የ <div class="dotted-blank-line" style="width: 185px;"></div> ሙያ ስልጠና <br>
+                    ተከታትለው ላጠናቀቁት ይህ የምስክር ወረቀት <br>
+                    ተሰጥቷቸዋል(ታል።)::
+                </div>
+            </div>
+
+            <div class="triple-pillar-divider">
+                <div class="pillar-line"></div>
+                <div class="pillar-line center-tall"></div>
+                <div class="pillar-line"></div>
+            </div>
+
+            <div class="narrative-column">
+                <div style="margin-bottom: 12px; display: flex; align-items: flex-end;">
+                    <span class="label-marker">To</span>
+                    <div class="fill-blank-line" style="width: 90%; margin-left: 10px;"></div>
+                </div>
+                <div class="english-body-text">
+                    THIS CERTIFICATE IS PROUDLY PRESENTED FOR <br>
+                    SUCCESSFULLY COMPLETING A SHORT-TERM TRAINING <br>
+                    PROGRAM IN<div class="dotted-blank-line" style="width: 200px;"></div> AT CRAFTOPIA. <br>
+                    THE TRAINING WAS CONDUCTED FOR<div class="dotted-blank-line" style="width: 95px;"></div>WEEK.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer-base-wrap">
+            <div class="footer-upper-row">
+                <div class="date-container-left">
+                    ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም
+                </div>
+                <div class="date-container-right">
+                    DATE: <div class="fill-blank-line" style="width: 150px;"></div>
+                </div>
+            </div>
+
+            <div class="signature-center-container">
+                <div class="signature-interactive-box">
+                    SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="brand-authenticity-tag">MINA CARD ®</div>
+
+    </div>
+</div>
+
+</body>
+</html>

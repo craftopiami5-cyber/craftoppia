@@ -1,0 +1,6 @@
+- [x] Create `vercel.json` routing configuration file
+- [x] Optimize server startups and webhook endpoints in `index.js`
+- [x] Update `/auth` Telegram bot command to support direct linking with 3 arguments
+- [x] Fix asset path tracing for PDF generator in `index.js`
+- [x] Export Express app instance from `index.js` and wrap `app.listen()`
+- [x] Verify the application works locally
