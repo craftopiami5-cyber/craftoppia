@@ -337,20 +337,8 @@ async function generateApprovedInviteLinks(regName) {
     const durationDays = parseInt(settings.access_duration_days) || 30;
     const expireDate = Math.floor(Date.now() / 1000) + Math.max(1, durationDays) * 24 * 3600;
 
-    // Generate main channel invite link
-    const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
-        chat_id: channelId,
-        member_limit: 1,
-        expire_date: expireDate,
-        name: `Main Link for ${regName || 'Student'}`
-    });
-
-    let inviteLink1 = "";
-    if (inviteRes1 && inviteRes1.ok) {
-        inviteLink1 = inviteRes1.result.invite_link;
-    } else {
-        console.error("Failed to generate main invite link:", inviteRes1 ? inviteRes1.description : "Unknown error");
-    }
+    // User requested to use a specific static channel link
+    let inviteLink1 = "https://t.me/+31igY5nhqoYzNDZk";
 
     // Generate second group invite link
     const secondGroupId = "-5500423208";
