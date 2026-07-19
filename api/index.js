@@ -334,6 +334,9 @@ async function generateApprovedInviteLinks(regName) {
     }
 
     const channelId = settings.telegram_channel_id || TELEGRAM_CHANNEL_ID || process.env.TELEGRAM_CHANNEL_ID || "-1004429840481";
+    const durationDays = parseInt(settings.access_duration_days) || 30;
+    const expireDate = Math.floor(Date.now() / 1000) + Math.max(1, durationDays) * 24 * 3600;
+
     // Generate main channel invite link dynamically
     const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
         chat_id: channelId,
