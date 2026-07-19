@@ -345,15 +345,34 @@ async function generateApprovedInviteLinks(regName) {
         name: `Main Link for ${regName || 'Student'}`
     });
 
-    let inviteLink1;
+    let inviteLink1 = "";
     if (inviteRes1 && inviteRes1.ok) {
         inviteLink1 = inviteRes1.result.invite_link;
     } else {
         console.error("Failed to generate main invite link:", inviteRes1 ? inviteRes1.description : "Unknown error");
-        inviteLink1 = `https://t.me/joinchat/mock_main_${Math.random().toString(36).substring(2,10)}`;
     }
 
-    return inviteLink1;
+    // Generate second group invite link
+    const secondGroupId = "-5500423208";
+    const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
+        chat_id: secondGroupId,
+        member_limit: 1,
+        expire_date: expireDate,
+        name: `Group Link for ${regName || 'Student'}`
+    });
+
+    let inviteLink2 = "";
+    if (inviteRes2 && inviteRes2.ok) {
+        inviteLink2 = inviteRes2.result.invite_link;
+    } else {
+        console.error("Failed to generate group invite link:", inviteRes2 ? inviteRes2.description : "Unknown error");
+    }
+
+    let links = [];
+    if (inviteLink1) links.push(inviteLink1);
+    if (inviteLink2) links.push(inviteLink2);
+
+    return links.length > 0 ? links.join(" ") : "Error: Failed to generate links";
 }
 
 function formatInviteLinksForUser(inviteLinkStr, lang) {
