@@ -1778,6 +1778,17 @@ app.post('/api/bot', async (req, res) => {
                         reply_markup: getMenuKeyboard(lang)
                     });
                     
+                    // Trigger Day 1 quiz immediately upon approval
+                    try {
+                        const prog = await db.getUserQuizProgress(reg.chat_id);
+                        if (!prog) {
+                            await db.upsertUserQuizProgress(reg.chat_id, { joined_channel: true, current_day: 1, current_question_index: 0 });
+                            await sendNextQuizQuestion(reg.chat_id);
+                        }
+                    } catch (err) {
+                        console.error("Error triggering day 1 quiz on inline approve:", err.message);
+                    }
+                    
                     const links = inviteLink.trim().split(/\s+/);
                     const newText = `Approved ✅\n\nName: ${reg.name}\nPhone: ${reg.phone}\nReceipt: ${reg.receipt_number}\nMain Channel: ${links[0] || "-"}\nPrivate Group: ${links[1] || "-"}`;
                     await sendTelegramRequest("editMessageText", {
