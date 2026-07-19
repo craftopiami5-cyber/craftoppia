@@ -39,13 +39,9 @@ let COMMANDS_SET = false;
 let DB_MESSAGES = {};
 let simulatorLogs = [];
 
-// Note: static files are served by Vercel CDN directly (public/ folder).
-// Express only handles /api/* routes in production.
-// For local dev, express.static serves from public/.
-if (!process.env.VERCEL) {
-    app.use(express.static(path.join(BASE_DIR, 'public')));
-    app.use('/public', express.static(path.join(BASE_DIR, 'public')));
-}
+// Serve static files from public/ — works locally and on Vercel (via includeFiles in vercel.json)
+app.use(express.static(path.join(BASE_DIR, 'public')));
+app.use('/public', express.static(path.join(BASE_DIR, 'public')));
 
 // Authentication Middleware
 function requireAuth(req, res, next) {
@@ -800,7 +796,7 @@ async function runStartups() {
         console.error("Error running startups:", e.message);
     }
 }
-runStartups();
+runStartups().catch((e) => console.error('[runStartups fatal]', e.message));
 
 
 // Simulator endpoints
@@ -2576,14 +2572,37 @@ if (require.main === module) {
     });
 }
 
-// Local dev fallback routes (not used in Vercel — CDN handles static files)
-if (!process.env.VERCEL) {
-    app.get('/admin', (req, res) => {
-        res.sendFile(path.join(BASE_DIR, 'public', 'dashboard.html'));
+// Prevent unhandled rejections from crashing the serverless function
+process.on('unhandledRejection', (reason) => {
+    console.error('[UNHANDLED REJECTION]', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[UNCAUGHT EXCEPTION]', err);
+});
+
+// Health check / diagnostic route
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', env: process.env.VERCEL ? 'vercel' : 'local', node: process.version });
+});
+
+// Fallback HTML routes — safe sendFile with error callback
+app.get('/admin', (req, res) => {
+    const p = path.join(BASE_DIR, 'public', 'dashboard.html');
+    res.sendFile(p, (err) => {
+        if (err && !res.headersSent) res.status(404).send('Dashboard not found');
     });
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(BASE_DIR, 'public', 'index.html'));
+});
+
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+app.get('*', (req, res) => {
+    const p = path.join(BASE_DIR, 'public', 'index.html');
+    res.sendFile(p, (err) => {
+        if (err && !res.headersSent) {
+            console.error('[sendFile error]', err.message, 'path:', p);
+            res.status(404).send('index.html not found. BASE_DIR=' + BASE_DIR);
+        }
     });
-}
+});
 
 module.exports = app;
