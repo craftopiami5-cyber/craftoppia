@@ -353,24 +353,7 @@ async function generateApprovedInviteLinks(regName) {
         inviteLink1 = `https://t.me/joinchat/mock_main_${Math.random().toString(36).substring(2,10)}`;
     }
 
-    // Generate second channel/group invite link (group ID is -5037460334, used exactly as is)
-    const secondGroupId = "-5037460334";
-    const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
-        chat_id: secondGroupId,
-        member_limit: 1,
-        expire_date: expireDate,
-        name: `Group Link for ${regName || 'Student'}`
-    });
-
-    let inviteLink2;
-    if (inviteRes2 && inviteRes2.ok) {
-        inviteLink2 = inviteRes2.result.invite_link;
-    } else {
-        console.error("Failed to generate second invite link:", inviteRes2 ? inviteRes2.description : "Unknown error");
-        inviteLink2 = `https://t.me/joinchat/mock_group_${Math.random().toString(36).substring(2,10)}`;
-    }
-
-    return `${inviteLink1} ${inviteLink2}`;
+    return inviteLink1;
 }
 
 function formatInviteLinksForUser(inviteLinkStr, lang) {
