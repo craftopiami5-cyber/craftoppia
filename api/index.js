@@ -39,9 +39,9 @@ let COMMANDS_SET = false;
 let DB_MESSAGES = {};
 let simulatorLogs = [];
 
-// Helper to serve public folder
-app.use('/public', express.static(path.join(BASE_DIR, 'public')));
+// Serve static files from public/ at both root and /public paths
 app.use(express.static(path.join(BASE_DIR, 'public')));
+app.use('/public', express.static(path.join(BASE_DIR, 'public')));
 
 // Authentication Middleware
 function requireAuth(req, res, next) {
