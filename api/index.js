@@ -8,8 +8,8 @@ const multer = require('multer');
 const PDFDocument = require('pdfkit');
 const { Client } = require('pg');
 const FormData = require('form-data');
-const db = require('../db');
-const { MESSAGES: STATIC_MESSAGES } = require('../messages');
+const db = require('./db');
+const { MESSAGES: STATIC_MESSAGES } = require('./messages');
 
 
 axios.defaults.timeout = 5000;
