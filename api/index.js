@@ -8,8 +8,8 @@ const multer = require('multer');
 const PDFDocument = require('pdfkit');
 const { Client } = require('pg');
 const FormData = require('form-data');
-const db = require('./db');
-const { MESSAGES: STATIC_MESSAGES } = require('./messages');
+const db = require('../db');
+const { MESSAGES: STATIC_MESSAGES } = require('../messages');
 
 
 axios.defaults.timeout = 5000;
@@ -23,7 +23,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-const BASE_DIR = __dirname;
+const BASE_DIR = path.join(__dirname, '..');
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8864741035:AAF5BMri8NIWEhJfwUq7DGmkiwQ86zB5o8o";
 const TELEGRAM_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
@@ -476,19 +476,30 @@ function generateCertificatePdf(name, regDate, finishDate) {
                             size: A4 landscape;
                             margin: 0;
                         }
-                        body {
-                            background-color: #ffffff !important;
+                        html, body {
+                            width: 297mm !important;
+                            height: 210mm !important;
                             margin: 0 !important;
                             padding: 0 !important;
+                            background-color: #ffffff !important;
                             display: block !important;
+                            overflow: hidden !important;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
                         }
                         .certificate-canvas {
                             width: 297mm !important;
                             height: 210mm !important;
-                            box-shadow: none !important;
+                            position: absolute !important;
+                            top: 0 !important;
+                            left: 0 !important;
                             margin: 0 !important;
-                            border: none !important;
+                            padding: 30px 40px !important;
                             box-sizing: border-box !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                            background-color: #ffffff !important;
+                            page-break-inside: avoid !important;
                         }
                         .fill-blank-line, .dotted-blank-line {
                             vertical-align: baseline !important;
@@ -2459,6 +2470,35 @@ app.post('/api/bot', async (req, res) => {
     });
     
     return res.send("OK");
+});
+
+// Setup Telegram Bot Webhook URL dynamically based on the current host domain
+app.get('/api/bot/setup', async (req, res) => {
+    try {
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers.host;
+        const webhookUrl = `${protocol}://${host}/api/bot`;
+        
+        console.log(`Setting Telegram webhook to: ${webhookUrl}`);
+        const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook`, {
+            url: webhookUrl,
+            allowed_updates: ["message", "callback_query", "chat_member"]
+        });
+        
+        return res.json({
+            success: true,
+            message: "Telegram webhook set up successfully!",
+            webhook_url: webhookUrl,
+            telegram_response: response.data
+        });
+    } catch (err) {
+        console.error("Failed to set up Telegram webhook:", err.message);
+        return res.status(500).json({
+            success: false,
+            error: err.message,
+            telegram_token_redacted: TELEGRAM_TOKEN.substring(0, 6) + "..."
+        });
+    }
 });
 
 // Catch-all route to serve the SPA frontend correctly or return status
