@@ -488,37 +488,31 @@ async function generateCertificatePdf(name, regDate, finishDate) {
         html = html.replace('SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>', `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`);
     }
 
-    let browser = null;
     try {
-        const puppeteer = require('puppeteer-core');
-        const chromium = require('@sparticuz/chromium');
+        const FormData = require('form-data');
+        const axios = require('axios');
         
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-            ignoreHTTPSErrors: true,
+        const form = new FormData();
+        form.append('files', Buffer.from(html, 'utf-8'), { filename: 'index.html', contentType: 'text/html' });
+        // Set paper size to A4 Landscape
+        form.append('paperWidth', '11.69');
+        form.append('paperHeight', '8.27');
+        form.append('marginTop', '0');
+        form.append('marginBottom', '0');
+        form.append('marginLeft', '0');
+        form.append('marginRight', '0');
+        form.append('printBackground', 'true');
+        
+        const res = await axios.post('https://demo.gotenberg.dev/forms/chromium/convert/html', form, {
+            headers: form.getHeaders(),
+            responseType: 'arraybuffer',
+            timeout: 15000
         });
         
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
-        
-        const pdfBytes = await page.pdf({
-            printBackground: true,
-            format: 'A4',
-            landscape: true,
-            margin: { top: 0, right: 0, bottom: 0, left: 0 }
-        });
-        
-        return pdfBytes;
+        return res.data;
     } catch (err) {
-        console.error("Puppeteer error:", err);
+        console.error("Gotenberg PDF API error:", err.message);
         throw err;
-    } finally {
-        if (browser !== null) {
-            await browser.close();
-        }
     }
 }
 
