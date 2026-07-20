@@ -1189,7 +1189,7 @@ app.post('/api/admin/generate-link-code', requireAuth, async (req, res) => {
     const code = "LINK-" + Math.floor(100000 + Math.random() * 900000);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes expiry
     
-    const success = await db.setAdminTelegramLinkCode(username, code, expiresAt);
+    const success = await db.setAdminVerificationCode(username, code, expiresAt);
     if (success) {
         return res.json({ success: true, code: code });
     }
@@ -2049,8 +2049,8 @@ app.post('/api/bot', async (req, res) => {
                 } else {
                     // With link code
                     const authCode = parts[3];
-                    const savedCode = adminRec.telegram_link_code;
-                    const expiryStr = adminRec.telegram_link_expires_at;
+                    const savedCode = adminRec.verification_code;
+                    const expiryStr = adminRec.code_expires_at;
                     
                     if (savedCode && savedCode === authCode) {
                         const now = new Date();
@@ -2058,7 +2058,7 @@ app.post('/api/bot', async (req, res) => {
                         if (!expiry || now <= expiry) {
                             // Success! Link chat
                             await db.linkAdminChat(authUser, chatId);
-                            await db.setAdminTelegramLinkCode(authUser, null, null);
+                            await db.setAdminVerificationCode(authUser, null, null);
                             
                             await sendTelegramRequest("sendMessage", {
                                 chat_id: chatId,
