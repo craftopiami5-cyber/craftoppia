@@ -556,6 +556,7 @@ async function sendNextQuizQuestion(chatId) {
                 pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
             } catch (pdfErr) {
                 console.error("Error generating completion certificate PDF:", pdfErr.message);
+                await sendTelegramRequest("sendMessage", { chat_id: chatId, text: "DEBUG PDF Error: " + pdfErr.message });
             }
             
             const caption = getMsg(lang, "course_completed_msg").replace("{name}", name);
@@ -1934,7 +1935,7 @@ app.post('/api/bot', async (req, res) => {
                 console.error("Error generating/sending PDF:", e.message);
                 await sendTelegramRequest("sendMessage", {
                     chat_id: chatId,
-                    text: "Sorry, there was an error generating your certificate. Please try again later.",
+                    text: `Sorry, there was an error generating your certificate. Error details: ${e.message}\nPlease try again later.`,
                     reply_markup: { inline_keyboard: [[{ text: "Try Again 🔄", callback_data: "get_certificate" }]] }
                 });
             }
