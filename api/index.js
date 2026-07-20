@@ -41,7 +41,7 @@ function requireAuth(req, res, next) {
     let token = null;
     const authHeader = req.headers.authorization;
     
-    if (authHeader && authHeader.startsWith("Bearer ")) {
+    if (authHeader && authHeader.startsWith("Bearer ") && authHeader !== "Bearer null") {
         token = authHeader.split(" ")[1];
     } else if (req.headers.cookie) {
         const cookies = req.headers.cookie.split(';').reduce((acc, c) => {
