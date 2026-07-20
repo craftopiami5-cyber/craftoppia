@@ -785,58 +785,6 @@ async function runStartups() {
 runStartups().catch((e) => console.error('[runStartups fatal]', e.message));
 
 
-// Simulator endpoints
-app.get('/api/bot/simulator-logs', (req, res) => {
-    const chatId = parseInt(req.query.chat_id);
-    if (!chatId) return res.json([]);
-    const logs = simulatorLogs.filter(l => l.chat_id === chatId);
-    return res.json(logs);
-});
-
-app.post('/api/bot/simulate-message', async (req, res) => {
-    const { chat_id, text, name, phone, callback_data, message_id, photo_url } = req.body;
-    const update = {};
-    
-    if (callback_data) {
-        update.callback_query = {
-            id: String(Math.floor(Math.random() * 1000000)),
-            data: callback_data,
-            message: {
-                message_id: message_id || 12345,
-                chat: { id: parseInt(chat_id) }
-            }
-        };
-    } else if (phone) {
-        update.message = {
-            chat: { id: parseInt(chat_id) },
-            contact: { phone_number: phone, first_name: name || "Test User" },
-            date: Math.floor(Date.now() / 1000)
-        };
-    } else if (photo_url) {
-        update.message = {
-            chat: { id: parseInt(chat_id) },
-            photo_url: photo_url,
-            date: Math.floor(Date.now() / 1000),
-            from: { id: parseInt(chat_id), first_name: name || "Test User" }
-        };
-    } else {
-        update.message = {
-            chat: { id: parseInt(chat_id) },
-            text: text,
-            date: Math.floor(Date.now() / 1000),
-            from: { id: parseInt(chat_id), first_name: name || "Test User" }
-        };
-    }
-    
-    try {
-        await axios.post(`http://localhost:${PORT}/api/bot`, update);
-        return res.json({ success: true });
-    } catch (err) {
-        console.error("Error in simulation processing:", err.message);
-        return res.status(500).json({ error: err.message });
-    }
-});
-
 // --- API ENDPOINTS ---
 
 // Login Step 1
@@ -1286,8 +1234,8 @@ app.post('/api/approve', requireAuth, async (req, res) => {
             const prog = await db.getUserQuizProgress(reg.chat_id);
             if (!prog) {
                 await db.upsertUserQuizProgress(reg.chat_id, { joined_channel: true, current_day: 1, current_question_index: 0 });
-                await sendNextQuizQuestion(reg.chat_id);
             }
+            await sendNextQuizQuestion(reg.chat_id);
         } catch (err) {
             console.error("Error triggering day 1 quiz on approve:", err.message);
         }
