@@ -1196,6 +1196,27 @@ app.post('/api/admin/generate-link-code', requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Failed to generate link code" });
 });
 
+app.get('/api/admin/force-schema-reload', async (req, res) => {
+    let DB_URL = process.env.DATABASE_URL;
+    if (!DB_URL) {
+        const supabaseUrl = process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co";
+        const dbPassword = process.env.DB_PASSWORD || "Dl1gdEE4ekuJK1EO";
+        const host = supabaseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
+        DB_URL = `postgresql://postgres:${dbPassword}@db.${host}:6543/postgres`;
+    }
+    const { Client } = require('pg');
+    const client = new Client({ connectionString: DB_URL, ssl: { rejectUnauthorized: false } });
+    try {
+        await client.connect();
+        await client.query("NOTIFY pgrst, 'reload schema';");
+        await client.end();
+        res.send("Schema reloaded");
+    } catch (e) {
+        res.status(500).send(e.message);
+    }
+});
+
+
 // Approve Registration
 app.post('/api/approve', requireAuth, async (req, res) => {
     const { id } = req.body;
