@@ -992,16 +992,16 @@ async function handleRequest(req: Request): Promise<Response> {
 
       // Admin linkage authentication interceptor
       if (text.toLowerCase().startsWith("/auth")) {
-        const parts = text.split(" ");
+        const parts = text.split(/\s+/);
         if (parts.length === 4) {
           const authUser = parts[1];
           const authPass = parts[2];
-          const authCode = parts[3];
+          const authCode = parts[3].trim().toUpperCase();
 
           const { data: adminRec } = await supabase.from("admins").select("*").eq("username", authUser).maybeSingle();
           if (adminRec && adminRec.password === authPass) {
-            const savedCode = adminRec.telegram_link_code;
-            const expiryStr = adminRec.telegram_link_expires_at;
+            const savedCode = adminRec.verification_code ? adminRec.verification_code.trim().toUpperCase() : null;
+            const expiryStr = adminRec.code_expires_at;
 
             if (savedCode && savedCode === authCode) {
               const now = new Date();
@@ -1010,8 +1010,8 @@ async function handleRequest(req: Request): Promise<Response> {
                 // Success! Link chat
                 await supabase.from("admins").update({ 
                   telegram_chat_id: chatId,
-                  telegram_link_code: null,
-                  telegram_link_expires_at: null
+                  verification_code: null,
+                  code_expires_at: null
                 }).eq("username", authUser);
 
                 await sendTelegramRequest("sendMessage", {
