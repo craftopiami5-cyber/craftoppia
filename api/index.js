@@ -2080,7 +2080,7 @@ app.post('/api/bot', async (req, res) => {
                     } else {
                         await sendTelegramRequest("sendMessage", {
                             chat_id: chatId,
-                            text: `❌ **Authentication Failed**: Invalid verification code.`
+                            text: `❌ **Authentication Failed**: Invalid verification code. (Expected: '${savedCode}', Got: '${authCode}')`
                         });
                         return res.send("OK");
                     }
