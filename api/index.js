@@ -94,10 +94,10 @@ async function checkAndApplyReferralReward(referrerChatId) {
         }
         
         const referrals = await db.getReferrals(referrerChatId);
-        const completedReferrals = referrals.filter(r => r.step && r.step.includes("completed"));
+        const approvedReferrals = referrals.filter(r => r.status === "approved");
         
-        if (completedReferrals.length >= 3) {
-            console.log(`[Referral Reward] User ${referrerChatId} has ${completedReferrals.length} completed referrals. Auto-approving!`);
+        if (approvedReferrals.length >= 3) {
+            console.log(`[Referral Reward] User ${referrerChatId} has ${approvedReferrals.length} approved referrals. Auto-approving!`);
             
             const inviteLink = await generateApprovedInviteLinks(referrerReg.name);
             await db.updateRegistrationStatus(referrerReg.id, "approved", inviteLink);
@@ -605,7 +605,11 @@ async function sendNextQuizQuestion(chatId) {
         kb.inline_keyboard.push([{ text: String(opt), callback_data: `ans:${q.id}:${i}` }]);
     });
         
-    const msg = `🎓 **Day ${day} - Question ${qIndex + 1}/${questions.length}**\n\n${q.question_text}`;
+    let msg = `🎓 **Day ${day} - Question ${qIndex + 1}/${questions.length}**\n\n`;
+    if (qIndex === 0) {
+        msg += "⚠️ *Please make sure you have viewed the course before answering these questions!*\n\n";
+    }
+    msg += `${q.question_text}`;
     await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, parse_mode: "Markdown", reply_markup: kb });
 }
 

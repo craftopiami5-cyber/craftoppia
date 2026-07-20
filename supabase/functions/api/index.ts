@@ -5,7 +5,7 @@ import { Buffer } from "https://deno.land/std@0.168.0/node/buffer.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || "";
-const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "8864741035:AAF5BMri8NIWEhJfwUq7DGmkiwQ86zB5o8o";
+const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "8602881468:AAF04TGYwH18uuKPlGhC3qtAnmFBfHrZh_4";
 const TELEGRAM_CHANNEL_ID = Deno.env.get("TELEGRAM_CHANNEL_ID") || "";
 const ADMIN_CHAT_ID = Deno.env.get("ADMIN_CHAT_ID") || "";
 const ADMIN_USERNAME = Deno.env.get("ADMIN_USERNAME") || "admin";
@@ -321,7 +321,11 @@ async function sendNextQuizQuestion(chatId: number) {
     kb.inline_keyboard.push([{ text: String(opt), callback_data: `ans:${q.id}:${i}` }]);
   });
 
-  const msg = `🎓 **Day ${day} - Question ${qIndex + 1}/${questions.length}**\n\n${q.question_text}`;
+  let msg = `🎓 **Day ${day} - Question ${qIndex + 1}/${questions.length}**\n\n`;
+  if (qIndex === 0) {
+    msg += "⚠️ *Please make sure you have viewed the course before answering these questions!*\n\n";
+  }
+  msg += `${q.question_text}`;
   await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, parse_mode: "Markdown", reply_markup: kb });
 }
 
@@ -558,14 +562,14 @@ async function checkAndApplyReferralReward(referrerChatId: number) {
 
     if (!referrals) return;
 
-    const completedReferrals = referrals.filter((r: any) => r.step && r.step.includes("completed"));
+    const approvedReferrals = referrals.filter((r: any) => r.status === "approved");
 
-    if (completedReferrals.length >= 3) {
-      console.log(`[Referral Reward] User ${referrerChatId} has ${completedReferrals.length} completed referrals. Auto-approving!`);
+    if (approvedReferrals.length >= 3) {
+      console.log(`[Referral Reward] User ${referrerChatId} has ${approvedReferrals.length} approved referrals. Auto-approving!`);
 
       const { data: settings } = await supabase.from("admins").select("verification_code").eq("username", "payment_settings").maybeSingle();
       const sDict = settings && settings.verification_code ? JSON.parse(settings.verification_code) : {};
-      const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1004429840481";
+      const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1003789578749";
 
       const inviteRes = await sendTelegramRequest("createChatInviteLink", {
         chat_id: channelId,
@@ -710,7 +714,7 @@ async function handleRequest(req: Request): Promise<Response> {
           if (isApprove) {
             const { data: settings } = await supabase.from("admins").select("verification_code").eq("username", "payment_settings").maybeSingle();
             const sDict = settings && settings.verification_code ? JSON.parse(settings.verification_code) : {};
-            const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1004429840481";
+            const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1003789578749";
 
             const inviteRes = await sendTelegramRequest("createChatInviteLink", {
               chat_id: channelId,
@@ -1250,8 +1254,9 @@ async function handleRequest(req: Request): Promise<Response> {
           }
         }
 
-        if (!photo && !message.photo_url && !receiptNum) {
-          await sendTelegramRequest("sendMessage", { chat_id: chatId, text: getMsg(lang, "ask_receipt_number") });
+        if (!photo && !message.photo_url) {
+          const errMsg = lang === "en" ? "Please upload a screenshot/image of your receipt instead of typing text." : "እባክዎ ከመፃፍ ይልቅ የደረሰኝዎን ፎቶ/ቅጂ ይላኩ።";
+          await sendTelegramRequest("sendMessage", { chat_id: chatId, text: errMsg });
           return new Response("OK", { headers: corsHeaders });
         }
 
