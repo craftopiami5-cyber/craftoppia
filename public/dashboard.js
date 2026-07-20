@@ -776,7 +776,7 @@ function renderLanguagesList() {
   }
   
   container.innerHTML = allLanguages.map(lang => {
-    const isProtected = ['en', 'am'].includes(lang.code);
+    const isProtected = ['en', 'am', 'om', 'or', 'ti', 'tg'].includes(lang.code);
     const deleteBtn = isProtected ? '' : `
       <button class="btn-logout" style="padding:4px 8px; font-size:11px; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.2); color:var(--danger);" onclick="deleteLanguage('${lang.code}')">Delete</button>
     `;
@@ -1035,8 +1035,11 @@ async function deleteLanguage(code) {
   }
 }
 
-function logout() {
+async function logout() {
   localStorage.removeItem("admin_token");
+  try {
+      await fetch('/api/logout', { method: 'POST' });
+  } catch(e) {}
   window.location.href = "/";
 }
 

@@ -38,11 +38,24 @@ app.use('/public', express.static(path.join(BASE_DIR, 'public')));
 
 // Authentication Middleware
 function requireAuth(req, res, next) {
+    let token = null;
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+    } else if (req.headers.cookie) {
+        const cookies = req.headers.cookie.split(';').reduce((acc, c) => {
+            const [k, v] = c.trim().split('=');
+            acc[k] = v;
+            return acc;
+        }, {});
+        token = cookies['admin_token'];
+    }
+
+    if (!token) {
         return res.status(401).json({ error: "Unauthorized" });
     }
-    const token = authHeader.split(" ")[1];
+    
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded;
@@ -99,12 +112,12 @@ async function checkAndApplyReferralReward(referrerChatId) {
         if (approvedReferrals.length >= 3) {
             console.log(`[Referral Reward] User ${referrerChatId} has ${approvedReferrals.length} approved referrals. Auto-approving!`);
             
-            const inviteLink = await generateApprovedInviteLinks(referrerReg.name);
+            const [lang] = getLangAndStep(referrerReg);
+            const inviteLink = await generateApprovedInviteLinks(referrerReg.name, lang);
             await db.updateRegistrationStatus(referrerReg.id, "approved", inviteLink);
             
-            const [lang] = getLangAndStep(referrerReg);
             const msg = getMsg(lang, "referral_reward_msg")
-                .replace("{name}", referrerReg.name || (lang === "am" ? "ተማሪ" : "Student"))
+                .replace("{name}", referrerReg.name || getDefaultStudentName(lang))
                 .replace("{link}", formatInviteLinksForUser(inviteLink, lang));
             
             await sendTelegramRequest("sendMessage", {
@@ -164,6 +177,8 @@ async function autoSeedDatabaseTranslations() {
         if (Array.isArray(dbLangs)) {
             const hasEn = dbLangs.some(l => l.code === 'en');
             const hasAm = dbLangs.some(l => l.code === 'am');
+            const hasOm = dbLangs.some(l => l.code === 'om');
+            const hasTi = dbLangs.some(l => l.code === 'ti');
             
             let seeded = false;
             if (!hasEn) {
@@ -174,6 +189,16 @@ async function autoSeedDatabaseTranslations() {
             if (!hasAm) {
                 console.log("[DB SEED] Seeding Amharic language...");
                 await db.upsertLanguage("am", "አማርኛ", true);
+                seeded = true;
+            }
+            if (!hasOm) {
+                console.log("[DB SEED] Seeding Oromo language...");
+                await db.upsertLanguage("om", "Afaan Oromoo", true);
+                seeded = true;
+            }
+            if (!hasTi) {
+                console.log("[DB SEED] Seeding Tigrinya language...");
+                await db.upsertLanguage("ti", "ትግርኛ", true);
                 seeded = true;
             }
             
@@ -317,7 +342,14 @@ function getLangAndStep(reg) {
     return ["en", step];
 }
 
-async function generateApprovedInviteLinks(regName) {
+function getDefaultStudentName(lang) {
+    if (lang === "am") return "ተማሪ";
+    if (lang === "om" || lang === "or") return "Barataa";
+    if (lang === "ti" || lang === "tg") return "ተመሃራይ";
+    return "Student";
+}
+
+async function generateApprovedInviteLinks(regName, lang = "en") {
     let settings;
     try {
         settings = await db.getPaymentSettings();
@@ -334,7 +366,7 @@ async function generateApprovedInviteLinks(regName) {
     const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
         chat_id: channelId,
         member_limit: 1,
-        name: `Main Link for ${regName || 'Student'}`
+        name: `Main Link for ${regName || getDefaultStudentName(lang)}`
     });
 
     let inviteLink1 = "";
@@ -347,7 +379,7 @@ async function generateApprovedInviteLinks(regName) {
     const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
         chat_id: secondGroupId,
         member_limit: 1,
-        name: `Group Link for ${regName || 'Student'}`
+        name: `Group Link for ${regName || getDefaultStudentName(lang)}`
     });
 
     let inviteLink2 = "";
@@ -368,9 +400,14 @@ function formatInviteLinksForUser(inviteLinkStr, lang) {
     if (!inviteLinkStr) return "";
     const links = inviteLinkStr.trim().split(/\s+/);
     if (links.length <= 1) return inviteLinkStr;
-    return lang === "am"
-        ? `ዋናው ቻናል፡ ${links[0]}\nየግል ግሩፕ፡ ${links[1]}`
-        : `Main Channel: ${links[0]}\nPrivate Group: ${links[1]}`;
+    if (lang === "am") {
+        return `ዋናው ቻናል፡ ${links[0]}\nየግል ግሩፕ፡ ${links[1]}`;
+    } else if (lang === "om" || lang === "or") {
+        return `Chaanaalii Guddaa: ${links[0]}\nGaree Dhuunfaa: ${links[1]}`;
+    } else if (lang === "ti" || lang === "tg") {
+        return `ቀንዲ ቻነል፡ ${links[0]}\nናይ ውልቀ ግሩፕ፡ ${links[1]}`;
+    }
+    return `Main Channel: ${links[0]}\nPrivate Group: ${links[1]}`;
 }
 
 
@@ -406,7 +443,9 @@ async function getLanguageKeyboard() {
     const flags = {
         "en": "🇬🇧",
         "am": "🇪🇹",
+        "om": "🇪🇹",
         "or": "🇪🇹",
+        "ti": "🇪🇹",
         "tg": "🇪🇹",
     };
     const buttons = langs.map(l => {
@@ -619,6 +658,10 @@ async function sendNextQuizQuestion(chatId) {
     if (qIndex === 0) {
         if (lang === "am") {
             msg += "⚠️ *እባክዎ እነዚህን ጥያቄዎች ከመመለስዎ በፊት ትምህርቱን መመልከትዎን ያረጋግጡ!*\n\n";
+        } else if (lang === "om" || lang === "or") {
+            msg += "⚠️ *Maaloo gaaffilee kana deebisuun dura koorsicha daawwachuu keessan mirkaneeffadhaa!*\n\n";
+        } else if (lang === "ti" || lang === "tg") {
+            msg += "⚠️ *በጃኹም ነዞም ሕቶታት እዚኦም ቅድሚ ምምላስኩም ነቲ ኮርስ ምርኣይኩም ኣረጋግጹ!*\n\n";
         } else {
             msg += "⚠️ *Please make sure you have viewed the course before answering these questions!*\n\n";
         }
@@ -807,11 +850,24 @@ app.post('/api/login/step2', async (req, res) => {
     
     if (savedCode === code && expiryDt && expiryDt > nowDt) {
         await db.setAdminVerificationCode(username, null, null);
-        const token = jwt.sign({ user: username }, JWT_SECRET, { expiresIn: '24h' });
+        const token = jwt.sign({ user: username }, JWT_SECRET, { expiresIn: '30d' });
+        
+        res.cookie('admin_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production' || process.env.VERCEL,
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+        
         return res.json({ token });
     }
         
     return res.status(401).json({ message: "Invalid or expired verification code." });
+});
+
+app.post('/api/logout', (req, res) => {
+    res.clearCookie('admin_token');
+    return res.json({ success: true });
 });
 
 // Request verification code for internal settings/passwords
@@ -1060,6 +1116,14 @@ app.post('/api/decline', requireAuth, async (req, res) => {
         if (finalReason === "Fake Receipt") translatedReason = "ሐሰተኛ ደረሰኝ";
         else if (finalReason === "Duplicate") translatedReason = "የተደገመ ደረሰኝ";
         else if (finalReason === "Invalid Details") translatedReason = "የተሳሳተ መረጃ";
+    } else if (lang === "om" || lang === "or") {
+        if (finalReason === "Fake Receipt") translatedReason = "Nagahee Kijibaa";
+        else if (finalReason === "Duplicate") translatedReason = "Nagahee Dachaa";
+        else if (finalReason === "Invalid Details") translatedReason = "Odeeffannoo Dogoggoraa";
+    } else if (lang === "ti" || lang === "tg") {
+        if (finalReason === "Fake Receipt") translatedReason = "ሓሶት ደረሰኝ";
+        else if (finalReason === "Duplicate") translatedReason = "ዝተደገመ ደረሰኝ";
+        else if (finalReason === "Invalid Details") translatedReason = "ዘይተረጋገጸ ሓበሬታ";
     }
     
     const msg = getMsg(lang, "receipt_declined_msg")
@@ -1163,7 +1227,8 @@ app.post('/api/approve', requireAuth, async (req, res) => {
     }
         
     try {
-        const inviteLink = await generateApprovedInviteLinks(reg.name);
+        const [lang] = getLangAndStep(reg);
+        const inviteLink = await generateApprovedInviteLinks(reg.name, lang);
         await db.updateRegistrationStatus(id, "approved", inviteLink);
         
         // Trigger referral reward check
@@ -1171,7 +1236,6 @@ app.post('/api/approve', requireAuth, async (req, res) => {
             await checkAndApplyReferralReward(reg.referred_by_chat_id);
         }
         
-        const [lang] = getLangAndStep(reg);
         const msg = getMsg(lang, "receipt_approved_msg")
             .replace("{name}", reg.name)
             .replace("{receipt}", reg.receipt_number)
@@ -1659,7 +1723,10 @@ app.post('/api/bot', async (req, res) => {
                             parse_mode: "Markdown"
                         });
                     } else {
-                        const successMsg = lang === "en" ? "Language updated successfully!" : "ቋንቋው በተሳካ ሁኔታ ተቀይሯል!";
+                        let successMsg = "Language updated successfully!";
+                        if (lang === "am") successMsg = "ቋንቋው በተሳካ ሁኔታ ተቀይሯል!";
+                        else if (lang === "om" || lang === "or") successMsg = "Afaan keessan sirriitti jijjiirameera!";
+                        else if (lang === "ti" || lang === "tg") successMsg = "ቋንቋኹም ብዓወት ተቐይሩ ኣሎ!";
                         await sendTelegramRequest("sendMessage", {
                             chat_id: chatId,
                             text: successMsg,
@@ -1686,7 +1753,8 @@ app.post('/api/bot', async (req, res) => {
                 
             if (action === "approve") {
                 try {
-                    const inviteLink = await generateApprovedInviteLinks(reg.name);
+                    const [lang] = getLangAndStep(reg);
+                    const inviteLink = await generateApprovedInviteLinks(reg.name, lang);
                     await db.updateRegistrationStatus(regId, "approved", inviteLink);
                     
                     // Trigger referral reward check
@@ -1694,7 +1762,6 @@ app.post('/api/bot', async (req, res) => {
                         await checkAndApplyReferralReward(reg.referred_by_chat_id);
                     }
                     
-                    const [lang] = getLangAndStep(reg);
                     const msg = getMsg(lang, "receipt_approved_msg")
                         .replace("{name}", reg.name)
                         .replace("{receipt}", reg.receipt_number)
@@ -1777,6 +1844,14 @@ app.post('/api/bot', async (req, res) => {
                 if (reason === "Fake Receipt") translatedReason = "ሐሰተኛ ደረሰኝ";
                 else if (reason === "Duplicate") translatedReason = "የተደገመ ደረሰኝ";
                 else if (reason === "Invalid Details") translatedReason = "የተሳሳተ መረጃ";
+            } else if (lang === "om" || lang === "or") {
+                if (reason === "Fake Receipt") translatedReason = "Nagahee Kijibaa";
+                else if (reason === "Duplicate") translatedReason = "Nagahee Dachaa";
+                else if (reason === "Invalid Details") translatedReason = "Odeeffannoo Dogoggoraa";
+            } else if (reason && (lang === "ti" || lang === "tg")) {
+                if (reason === "Fake Receipt") translatedReason = "ሓሶት ደረሰኝ";
+                else if (reason === "Duplicate") translatedReason = "ዝተደገመ ደረሰኝ";
+                else if (reason === "Invalid Details") translatedReason = "ዘይተረጋገጸ ሓበሬታ";
             }
             
             const msg = getMsg(lang, "receipt_declined_msg")
@@ -2337,7 +2412,7 @@ app.post('/api/bot', async (req, res) => {
             }
             
             if (!receiptImg) {
-                const errMsg = lang === "en" ? "Failed to upload image. Please try again or type your receipt number." : "ምስሉን መጫን አልተሳካም። እባክዎ እንደገና ይሞክሩ ወይም የደረሰኝ ቁጥሩን ይፃፉ።";
+                const errMsg = getMsg(lang, "err_failed_upload");
                 await sendTelegramRequest("sendMessage", {
                     chat_id: chatId,
                     text: errMsg
@@ -2347,7 +2422,7 @@ app.post('/api/bot', async (req, res) => {
         }
 
         if (!photo && !message.photo_url) {
-            const errMsg = lang === "en" ? "Please upload a screenshot/image of your receipt instead of typing text." : "እባክዎ ከመፃፍ ይልቅ የደረሰኝዎን ፎቶ/ቅጂ ይላኩ።";
+            const errMsg = getMsg(lang, "err_upload_receipt_only");
             await sendTelegramRequest("sendMessage", {
                 chat_id: chatId,
                 text: errMsg
