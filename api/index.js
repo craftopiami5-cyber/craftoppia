@@ -2025,8 +2025,8 @@ app.post('/api/bot', async (req, res) => {
 
     // Admin linkage authentication interceptor
     if (text.toLowerCase().startsWith("/auth")) {
-        const parts = text.split(" ");
-        if (parts.length === 3 || parts.length === 4) {
+        const parts = text.split(/\s+/);
+        if (parts.length >= 3 && parts.length <= 4) {
             const authUser = parts[1];
             const authPass = parts[2];
             
@@ -2048,8 +2048,8 @@ app.post('/api/bot', async (req, res) => {
                     return res.send("OK");
                 } else {
                     // With link code
-                    const authCode = parts[3];
-                    const savedCode = adminRec.verification_code;
+                    const authCode = parts[3].trim().toUpperCase();
+                    const savedCode = adminRec.verification_code ? adminRec.verification_code.trim().toUpperCase() : null;
                     const expiryStr = adminRec.code_expires_at;
                     
                     if (savedCode && savedCode === authCode) {
