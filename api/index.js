@@ -2393,9 +2393,8 @@ app.post('/api/bot', async (req, res) => {
                     }
                 } catch (e) {
                     console.error("Error processing image upload, using offline fallback:", e.message);
-                    // Offline fallback: Use a beautiful mock receipt image URL so testing proceeds successfully!
-                    receiptImg = `https://picsum.photos/id/${Math.floor(Math.random() * 100) + 1}/800/600`;
-                    receiptNum = caption || `Mock_REC_${Math.floor(Math.random() * 900000) + 100000}`;
+                    receiptImg = fileId;
+                    receiptNum = caption || `Img_REC_${Math.floor(Math.random() * 900000) + 100000}`;
                 }
             }
             
