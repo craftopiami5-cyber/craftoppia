@@ -321,9 +321,16 @@ async function sendNextQuizQuestion(chatId: number) {
     kb.inline_keyboard.push([{ text: String(opt), callback_data: `ans:${q.id}:${i}` }]);
   });
 
+  const { data: reg } = await supabase.from("registrations").select("*").eq("chat_id", chatId).maybeSingle();
+  const [lang] = getLangAndStep(reg);
+
   let msg = `🎓 **Day ${day} - Question ${qIndex + 1}/${questions.length}**\n\n`;
   if (qIndex === 0) {
-    msg += "⚠️ *Please make sure you have viewed the course before answering these questions!*\n\n";
+    if (lang === "am") {
+      msg += "⚠️ *እባክዎ እነዚህን ጥያቄዎች ከመመለስዎ በፊት ትምህርቱን መመልከትዎን ያረጋግጡ!*\n\n";
+    } else {
+      msg += "⚠️ *Please make sure you have viewed the course before answering these questions!*\n\n";
+    }
   }
   msg += `${q.question_text}`;
   await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, parse_mode: "Markdown", reply_markup: kb });
