@@ -2627,16 +2627,6 @@ app.get('/admin', (req, res) => {
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-app.get('*', (req, res) => {
-    const p = path.join(BASE_DIR, 'public', 'index.html');
-    res.sendFile(p, (err) => {
-        if (err && !res.headersSent) {
-            console.error('[sendFile error]', err.message, 'path:', p);
-            res.status(404).send('index.html not found. BASE_DIR=' + BASE_DIR);
-        }
-    });
-});
-
 // TEMPORARY WEBHOOK FIXER
 app.get('/api/admin/set-webhook', async (req, res) => {
     try {
@@ -2649,4 +2639,13 @@ app.get('/api/admin/set-webhook', async (req, res) => {
     }
 });
 
+app.get('*', (req, res) => {
+    const p = path.join(BASE_DIR, 'public', 'index.html');
+    res.sendFile(p, (err) => {
+        if (err && !res.headersSent) {
+            console.error('[sendFile error]', err.message, 'path:', p);
+            res.status(404).send('index.html not found. BASE_DIR=' + BASE_DIR);
+        }
+    });
+});
 module.exports = app;
