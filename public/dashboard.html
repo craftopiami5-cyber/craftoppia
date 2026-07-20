@@ -28,7 +28,6 @@
       <button class="tab-btn" id="tabBtnQuizBuilder" onclick="switchMainTab('quizBuilder')">Quiz Builder 🎓</button>
       <button class="tab-btn" id="tabBtnTranslations" onclick="switchMainTab('translations')">Translations 🌐</button>
       <button class="tab-btn" id="tabBtnSettings" onclick="switchMainTab('settings')">Settings ⚙️</button>
-      <button class="tab-btn" id="tabBtnSimulator" onclick="switchMainTab('simulator')">Bot Simulator 🤖</button>
     </div>
 
     <!-- 1. SUBMISSIONS TAB -->
@@ -341,59 +340,6 @@
       </div>
     </div>
 
-    <!-- 7. BOT SIMULATION TAB -->
-    <div class="tab-section" id="sectionSimulator">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
-        <!-- Left Column: Simulator Controls -->
-        <div class="card" style="margin-bottom: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 24px;">
-          <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Simulate Telegram User</h2>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Mock Chat ID (User ID)</label>
-            <input type="number" class="search-box" style="width:100%; padding:10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main);" id="simChatId" value="999888">
-          </div>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Predefined Commands</label>
-            <div style="display:flex; flex-wrap:wrap; gap:8px;">
-              <button class="btn-logout" style="background:#4f46e5; color:#fff; border:none; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer;" onclick="sendSimulatedText('/start')">/start</button>
-              <button class="btn-logout" style="background:#4f46e5; color:#fff; border:none; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer;" onclick="sendSimulatedText('/submit')">/submit</button>
-              <button class="btn-logout" style="background:#4f46e5; color:#fff; border:none; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer;" onclick="sendSimulatedText('/refer')">/refer</button>
-              <button class="btn-logout" style="background:#4f46e5; color:#fff; border:none; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer;" onclick="sendSimulatedText('/status')">/status</button>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Send Custom Text Message</label>
-            <div style="display:flex; gap:8px;">
-              <input type="text" class="search-box" style="flex:1; padding:10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main);" id="simMessageText" placeholder="Type a message to the bot...">
-              <button class="btn-action btn-approve" style="padding:10px 16px; font-size:12px; border-radius:8px; border:none; background:var(--success); color:#fff; cursor:pointer;" onclick="sendSimulatedCustomText()">Send</button>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Simulate Share Contact</label>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
-              <input type="text" class="search-box" style="padding:10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main);" id="simContactName" placeholder="Name (e.g. John)">
-              <input type="text" class="search-box" style="padding:10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main);" id="simContactPhone" placeholder="Phone (e.g. +251911...)">
-            </div>
-            <button class="btn-action btn-approve" style="width:100%; padding:10px; font-size:12px; border-radius:8px; border:none; background:var(--success); color:#fff; cursor:pointer;" onclick="sendSimulatedContact()">Share Contact 📞</button>
-          </div>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; text-transform:uppercase;">Simulate Send Photo Receipt</label>
-            <div style="display:flex; gap:8px;">
-              <input type="file" class="search-box" style="flex:1; padding:6px 10px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; color:var(--text-main); font-size:12px;" id="simPhotoFile" accept="image/*">
-              <button class="btn-action btn-approve" style="padding:10px 16px; font-size:12px; border-radius:8px; border:none; background:var(--success); color:#fff; cursor:pointer;" onclick="sendSimulatedPhoto()">Send Photo 🖼️</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column: Simulated Chat View -->
-        <div class="card" style="margin-bottom: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 24px; display:flex; flex-direction:column; height: 500px;">
-          <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Chat History</h2>
-          <div id="simChatHistory" style="flex:1; overflow-y:auto; padding:12px; border-radius:12px; background:rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px; margin-bottom:12px;">
-            <!-- Messages rendered dynamically -->
-          </div>
-          <button class="btn-logout" style="background:#ff4a4a; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; width:100%;" onclick="clearSimHistory()">Clear Chat History</button>
-        </div>
-      </div>
-    </div>
   </main>
 
   <!-- Rejection Modal -->
