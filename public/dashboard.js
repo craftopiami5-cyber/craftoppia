@@ -43,7 +43,7 @@ function switchMainTab(tab) {
     document.getElementById("tabBtnSettings").classList.add("active");
     document.getElementById("sectionSettings").classList.add("active");
     loadPaymentSettings();
-
+  }
 }
 
 // Fetch Registrations (Submissions tab)
