@@ -435,7 +435,13 @@ async function generateCertificatePdf(name, regDate, finishDate) {
     const path = require('path');
     const settings = await db.getPaymentSettings();
 
-    const templatePath = path.join(__dirname, 'IMG_6757.html');
+    let templatePath = path.join(__dirname, 'IMG_6757.html');
+    if (!fs.existsSync(templatePath)) {
+        templatePath = path.join(process.cwd(), 'api', 'IMG_6757.html');
+    }
+    if (!fs.existsSync(templatePath)) {
+        templatePath = path.join(process.cwd(), 'IMG_6757.html');
+    }
     let html = fs.readFileSync(templatePath, 'utf8');
 
     const programAm  = settings.cert_program_am  || "እደጥበብ";
@@ -444,7 +450,13 @@ async function generateCertificatePdf(name, regDate, finishDate) {
     const durationEn = settings.cert_duration_en || "4";
     const signatureBase64 = settings.signature_base64 || "";
 
-    const logoPath = path.join(__dirname, 'IMG_0892.PNG');
+    let logoPath = path.join(__dirname, 'IMG_0892.PNG');
+    if (!fs.existsSync(logoPath)) {
+        logoPath = path.join(process.cwd(), 'api', 'IMG_0892.PNG');
+    }
+    if (!fs.existsSync(logoPath)) {
+        logoPath = path.join(process.cwd(), 'IMG_0892.PNG');
+    }
     let logoBase64 = "";
     if (fs.existsSync(logoPath)) {
         logoBase64 = "data:image/png;base64," + fs.readFileSync(logoPath, 'base64');
