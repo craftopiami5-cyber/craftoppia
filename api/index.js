@@ -429,168 +429,7 @@ function parseIsoDatetime(isoStr) {
     return new Date(isoStr);
 }
 
-// Generate PDF Certificate Helper
-// Generate PDF Certificate Helper
-function generateCertificatePdf(name, regDate, finishDate) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const { exec } = require('child_process');
-            const fs = require('fs');
-            const path = require('path');
-            const settings = await db.getPaymentSettings();
-
-            // Read HTML template
-            const templatePath = path.join(__dirname, 'IMG_6757.html');
-            let html = fs.readFileSync(templatePath, 'utf8');
-
-            // Format values
-            const programAm  = settings.cert_program_am  || "እደጥበብ";
-            const programEn  = settings.cert_program_en  || "Hand Craft & Art";
-            const durationAm = settings.cert_duration_am || "4";
-            const durationEn = settings.cert_duration_en || "4";
-            const signatureBase64 = settings.signature_base64 || "";
-
-            // Dynamically resolve logo path to ensure it loads
-            html = html.replace('C:\\Users\\Administrator\\Desktop\\Projects\\craftopia\\IMG_0892.PNG', path.join(__dirname, 'IMG_0892.PNG'));
-
-            // Inject printing CSS styles to make it borderless landscape A4
-            const printStyles = `
-                <style>
-                    @media print {
-                        @page {
-                            size: A4 landscape;
-                            margin: 0;
-                        }
-                        html, body {
-                            width: 297mm !important;
-                            height: 210mm !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            background-color: #ffffff !important;
-                            display: block !important;
-                            overflow: hidden !important;
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
-                        .certificate-canvas {
-                            width: 297mm !important;
-                            height: 210mm !important;
-                            position: absolute !important;
-                            top: 0 !important;
-                            left: 0 !important;
-                            margin: 0 !important;
-                            padding: 30px 40px !important;
-                            box-sizing: border-box !important;
-                            border: none !important;
-                            box-shadow: none !important;
-                            background-color: #ffffff !important;
-                            page-break-inside: avoid !important;
-                        }
-                        .fill-blank-line, .dotted-blank-line {
-                            vertical-align: baseline !important;
-                            height: auto !important;
-                            text-align: center !important;
-                            font-weight: bold !important;
-                            display: inline-block !important;
-                        }
-                        /* Ensure footer containers align clean */
-                        .date-container-left, .date-container-right {
-                            display: inline-flex !important;
-                            align-items: baseline !important;
-                        }
-                    }
-                </style>
-            `;
-            html = html.replace('</head>', printStyles + '</head>');
-
-            // Replace dynamic placeholders in HTML
-            // 1. Amharic Name
-            html = html.replace(
-                '<div class="fill-blank-line" style="width: 88%; margin-left: 10px;"></div>',
-                `<div class="fill-blank-line" style="width: 88%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`
-            );
-            // 2. English Name
-            html = html.replace(
-                '<div class="fill-blank-line" style="width: 90%; margin-left: 10px;"></div>',
-                `<div class="fill-blank-line" style="width: 90%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`
-            );
-            // 3. Amharic Duration
-            html = html.replace(
-                '<div class="dotted-blank-line" style="width: 95px;"></div>',
-                `<div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationAm}</div>`
-            );
-            // 4. Amharic Program
-            html = html.replace(
-                '<div class="dotted-blank-line" style="width: 185px;"></div>',
-                `<div class="dotted-blank-line" style="width: 185px; text-align: center; font-weight: bold;">${programAm}</div>`
-            );
-            // 5. English Program
-            html = html.replace(
-                'PROGRAM IN<div class="dotted-blank-line" style="width: 200px;"></div> AT CRAFTOPIA.',
-                `PROGRAM IN <div class="dotted-blank-line" style="width: 200px; text-align: center; font-weight: bold;">${programEn}</div> AT CRAFTOPIA.`
-            );
-            // 6. English Duration
-            html = html.replace(
-                'THE TRAINING WAS CONDUCTED FOR<div class="dotted-blank-line" style="width: 95px;"></div>WEEK.',
-                `THE TRAINING WAS CONDUCTED FOR <div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationEn}</div> WEEK.`
-            );
-            // 7. Amharic Date
-            html = html.replace(
-                'ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም',
-                `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${finishDate}</div> ዓ.ም`
-            );
-            // 8. English Date
-            html = html.replace(
-                'DATE: <div class="fill-blank-line" style="width: 150px;"></div>',
-                `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`
-            );
-            // 9. Signature
-            if (signatureBase64) {
-                html = html.replace(
-                    'SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>',
-                    `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`
-                );
-            }
-
-            // Write temporary HTML file
-            const tempHtmlPath = path.join(__dirname, 'temp_cert.html');
-            const tempPdfPath = path.join(__dirname, 'temp_cert.pdf');
-            fs.writeFileSync(tempHtmlPath, html, 'utf8');
-
-            // Print HTML to PDF using headless Chrome
-            const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-            const cmd = `"${chromePath}" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="${tempPdfPath}" "${tempHtmlPath}"`;
-
-            exec(cmd, (execErr) => {
-                try {
-                    // Cleanup temp HTML
-                    if (fs.existsSync(tempHtmlPath)) fs.unlinkSync(tempHtmlPath);
-
-                    if (execErr) {
-                        reject(new Error("Chrome execution failed: " + execErr.message));
-                        return;
-                    }
-
-                    // Read PDF bytes
-                    if (!fs.existsSync(tempPdfPath)) {
-                        reject(new Error("PDF output file was not generated by Chrome."));
-                        return;
-                    }
-
-                    const pdfBytes = fs.readFileSync(tempPdfPath);
-                    // Cleanup temp PDF
-                    fs.unlinkSync(tempPdfPath);
-
-                    resolve(pdfBytes);
-                } catch (cleanupErr) {
-                    reject(cleanupErr);
-                }
-            });
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
+// PDF Generation is now handled client-side via /api/certificate route
 
 
 // Send Next Quiz Helper
@@ -623,53 +462,18 @@ async function sendNextQuizQuestion(chatId) {
         if (day >= maxDay) {
             await db.upsertUserQuizProgress(chatId, { is_completed: true, last_completed_at: new Date().toISOString() });
             
-            // Auto generate certificate and send it immediately!
             const reg = await db.getRegistration(chatId);
             const name = reg ? (reg.name || "Student") : "Student";
-            const regDateStr = reg ? (reg.created_at || "") : "";
-            
-            let regDate = "Unknown";
-            if (regDateStr) {
-                try { regDate = regDateStr.split("T")[0]; } catch (e) { /* ignore */ }
-            }
-            const finishDate = new Date().toISOString().split("T")[0];
-            
-            let pdfBytes = null;
-            try {
-                pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
-            } catch (pdfErr) {
-                console.error("Error generating completion certificate PDF:", pdfErr.message);
-            }
-            
-            if (pdfBytes) {
-                const FormData = require('form-data');
-                const form = new FormData();
-                form.append('chat_id', String(chatId));
-                const [lang] = getLangAndStep(reg);
-                const caption = getMsg(lang, "course_completed_msg").replace("{name}", name);
-                form.append('caption', caption);
-                form.append('parse_mode', 'Markdown');
-                form.append('document', pdfBytes, {
-                    filename: 'Certificate.pdf',
-                    contentType: 'application/pdf'
-                });
-                
-                try {
-                    await axios.post(`${TELEGRAM_API_URL}/sendDocument`, form, { headers: form.getHeaders() });
-                    return;
-                } catch (sendErr) {
-                    console.error("Error sending auto-generated certificate document:", sendErr.message);
-                }
-            }
-            
             const [lang] = getLangAndStep(reg);
+            const certUrl = `https://craftoppia.vercel.app/api/certificate?id=${chatId}`;
+            
             const msg = getMsg(lang, "course_completed_msg").replace("{name}", name);
             const kb = {
                 inline_keyboard: [
-                    [{ text: "Get Certificate 📜", callback_data: "get_certificate" }]
+                    [{ text: "View & Download Certificate 📜", url: certUrl }]
                 ]
             };
-            await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, parse_mode: "Markdown", reply_markup: kb });
+            await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg + `\n\n👉 [Click here to View & Download your Certificate](${certUrl})`, parse_mode: "Markdown", reply_markup: kb });
         } else {
             await db.upsertUserQuizProgress(chatId, { last_completed_at: new Date().toISOString() });
             
@@ -1978,35 +1782,19 @@ app.post('/api/bot', async (req, res) => {
             
             const reg = await db.getRegistration(chatId);
             const name = reg ? (reg.name || "Student") : "Student";
-            const regDateStr = reg ? (reg.created_at || "") : "";
-            
-            let regDate = "Unknown";
-            if (regDateStr) {
-                try { regDate = regDateStr.split("T")[0]; } catch (e) { /* ignore */ }
-            }
-            const finishDate = new Date().toISOString().split("T")[0];
-            
             const [lang] = getLangAndStep(reg);
+            
+            const certUrl = `https://craftoppia.vercel.app/api/certificate?id=${chatId}`;
             const caption = getMsg(lang, "course_completed_msg").replace("{name}", name);
             
-            try {
-                const pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
-                
-                const FormData = require('form-data');
-                const form = new FormData();
-                form.append('chat_id', chatId);
-                form.append('caption', caption);
-                form.append('parse_mode', 'Markdown');
-                form.append('document', pdfBytes, {
-                    filename: 'Certificate.pdf',
-                    contentType: 'application/pdf'
-                });
-                
-                const url = `${TELEGRAM_API_URL}/sendDocument`;
-                await axios.post(url, form, { headers: form.getHeaders() });
-            } catch (e) {
-                console.error("Error generating/sending PDF:", e.message);
-            }
+            await sendTelegramRequest("sendMessage", {
+                chat_id: chatId,
+                text: `${caption}\n\n👉 [Click here to View & Download your Certificate](${certUrl})`,
+                parse_mode: "Markdown",
+                reply_markup: {
+                    inline_keyboard: [[{ text: "View & Download Certificate 📜", url: certUrl }]]
+                }
+            });
         }
         return res.send("OK");
     }
@@ -2629,6 +2417,100 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 // TEMPORARY WEBHOOK FIXER
 app.get('/api/admin/set-webhook', async (req, res) => {
     res.json({ success: true, env: process.env });
+});
+
+app.get('/api/certificate', async (req, res) => {
+    const chatId = req.query.id;
+    if (!chatId) return res.status(400).send("Missing ID");
+    
+    const db = require('./db');
+    const reg = await db.getRegistration(chatId);
+    if (!reg) return res.status(404).send("Registration not found");
+    
+    const name = reg.name || "Student";
+    const finishDate = new Date().toISOString().split("T")[0];
+    
+    const fs = require('fs');
+    const path = require('path');
+    const settings = await db.getPaymentSettings();
+
+    const templatePath = path.join(__dirname, 'IMG_6757.html');
+    let html = fs.readFileSync(templatePath, 'utf8');
+
+    const programAm  = settings.cert_program_am  || "እደጥበብ";
+    const programEn  = settings.cert_program_en  || "Hand Craft & Art";
+    const durationAm = settings.cert_duration_am || "4";
+    const durationEn = settings.cert_duration_en || "4";
+    const signatureBase64 = settings.signature_base64 || "";
+
+    const logoPath = path.join(__dirname, 'IMG_0892.PNG');
+    let logoBase64 = "";
+    if (fs.existsSync(logoPath)) {
+        logoBase64 = "data:image/png;base64," + fs.readFileSync(logoPath, 'base64');
+    }
+    html = html.replace('C:\\Users\\Administrator\\Desktop\\Projects\\craftopia\\IMG_0892.PNG', logoBase64);
+
+    html = html.replace(
+        '<div class="fill-blank-line" style="width: 88%; margin-left: 10px;"></div>',
+        `<div class="fill-blank-line" style="width: 88%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`
+    );
+    html = html.replace(
+        '<div class="fill-blank-line" style="width: 90%; margin-left: 10px;"></div>',
+        `<div class="fill-blank-line" style="width: 90%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`
+    );
+    html = html.replace(
+        '<div class="dotted-blank-line" style="width: 95px;"></div>',
+        `<div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationAm}</div>`
+    );
+    html = html.replace(
+        '<div class="dotted-blank-line" style="width: 185px;"></div>',
+        `<div class="dotted-blank-line" style="width: 185px; text-align: center; font-weight: bold;">${programAm}</div>`
+    );
+    html = html.replace(
+        'PROGRAM IN<div class="dotted-blank-line" style="width: 200px;"></div> AT CRAFTOPIA.',
+        `PROGRAM IN <div class="dotted-blank-line" style="width: 200px; text-align: center; font-weight: bold;">${programEn}</div> AT CRAFTOPIA.`
+    );
+    html = html.replace(
+        'THE TRAINING WAS CONDUCTED FOR<div class="dotted-blank-line" style="width: 95px;"></div>WEEK.',
+        `THE TRAINING WAS CONDUCTED FOR <div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationEn}</div> WEEK.`
+    );
+    html = html.replace(
+        'ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም',
+        `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${finishDate}</div> ዓ.ም`
+    );
+    html = html.replace(
+        'DATE: <div class="fill-blank-line" style="width: 150px;"></div>',
+        `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`
+    );
+    if (signatureBase64) {
+        html = html.replace(
+            'SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>',
+            `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`
+        );
+    }
+
+    const script = `
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        function downloadPdf() {
+            const element = document.querySelector('.certificate-canvas');
+            const opt = {
+                margin: 0,
+                filename: 'Craftopia_Certificate_${name.replace(/\\s+/g, '_')}.pdf',
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+    <div style="text-align: center; margin-top: 20px; padding-bottom: 20px;">
+        <button onclick="downloadPdf()" style="padding: 12px 24px; background: #0088cc; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-family: sans-serif; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Download PDF Certificate 📥</button>
+    </div>
+    </body>`;
+    
+    html = html.replace('</body>', script);
+    res.send(html);
 });
 
 app.get('*', (req, res) => {
