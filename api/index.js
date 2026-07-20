@@ -2637,4 +2637,16 @@ app.get('*', (req, res) => {
     });
 });
 
+// TEMPORARY WEBHOOK FIXER
+app.get('/api/admin/set-webhook', async (req, res) => {
+    try {
+        const axios = require('axios');
+        const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setWebhook?url=https://craftoppia.vercel.app/api/bot`;
+        const response = await axios.get(url);
+        res.json({ success: true, data: response.data });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 module.exports = app;
