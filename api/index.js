@@ -429,97 +429,119 @@ function parseIsoDatetime(isoStr) {
     return new Date(isoStr);
 }
 
-// Generate PDF Certificate Helper
-async function generateCertificatePdf(name, regDate, finishDate) {
-    const fs = require('fs');
-    const path = require('path');
-    const settings = await db.getPaymentSettings();
-
-    let templatePath = path.join(__dirname, 'IMG_6757.html');
-    if (!fs.existsSync(templatePath)) {
-        templatePath = path.join(process.cwd(), 'api', 'IMG_6757.html');
-    }
-    if (!fs.existsSync(templatePath)) {
-        templatePath = path.join(process.cwd(), 'IMG_6757.html');
-    }
-    let html = fs.readFileSync(templatePath, 'utf8');
-
-    const programAm  = settings.cert_program_am  || "እደጥበብ";
-    const programEn  = settings.cert_program_en  || "Hand Craft & Art";
-    const durationAm = settings.cert_duration_am || "4";
-    const durationEn = settings.cert_duration_en || "4";
-    const signatureBase64 = settings.signature_base64 || "";
-
-    let logoPath = path.join(__dirname, 'IMG_0892.PNG');
-    if (!fs.existsSync(logoPath)) {
-        logoPath = path.join(process.cwd(), 'api', 'IMG_0892.PNG');
-    }
-    if (!fs.existsSync(logoPath)) {
-        logoPath = path.join(process.cwd(), 'IMG_0892.PNG');
-    }
-    let logoBase64 = "";
-    if (fs.existsSync(logoPath)) {
-        logoBase64 = "data:image/png;base64," + fs.readFileSync(logoPath, 'base64');
-    }
-    html = html.replace('C:\\Users\\Administrator\\Desktop\\Projects\\craftopia\\IMG_0892.PNG', logoBase64);
-
-    const printStyles = `
-        <style>
-            @media print {
-                @page { size: A4 landscape; margin: 0; }
-                html, body { width: 297mm !important; height: 210mm !important; margin: 0 !important; padding: 0 !important; background-color: #ffffff !important; display: block !important; overflow: hidden !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .certificate-canvas { width: 297mm !important; height: 210mm !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; padding: 30px 40px !important; box-sizing: border-box !important; border: none !important; box-shadow: none !important; background-color: #ffffff !important; page-break-inside: avoid !important; }
-                .fill-blank-line, .dotted-blank-line { vertical-align: baseline !important; height: auto !important; text-align: center !important; font-weight: bold !important; display: inline-block !important; }
-                .date-container-left, .date-container-right { display: inline-flex !important; align-items: baseline !important; }
+// Generate PDF Certificate Helper using PDFKit
+function generateCertificatePdf(name, regDate, finishDate) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const PDFDocument = require('pdfkit');
+            const fs = require('fs');
+            const path = require('path');
+            
+            const settings = await db.getPaymentSettings();
+            
+            // Setup paths
+            const findPath = (filename) => {
+                let p = path.join(__dirname, filename);
+                if (fs.existsSync(p)) return p;
+                p = path.join(process.cwd(), 'api', filename);
+                if (fs.existsSync(p)) return p;
+                return path.join(process.cwd(), filename);
+            };
+            
+            const logoPath = findPath('IMG_0892.PNG');
+            const boldFontPath = findPath('NotoSansEthiopic-Bold.ttf');
+            const regularFontPath = findPath('NotoSansEthiopic-Regular.ttf');
+            
+            // Create a document A4 Landscape
+            const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 });
+            
+            let buffers = [];
+            doc.on('data', buffers.push.bind(buffers));
+            doc.on('end', () => {
+                let pdfData = Buffer.concat(buffers);
+                resolve(pdfData);
+            });
+            doc.on('error', reject);
+            
+            // Draw borders
+            doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).lineWidth(4).strokeColor('#bfa361').stroke();
+            doc.rect(26, 26, doc.page.width - 52, doc.page.height - 52).lineWidth(1).strokeColor('#bfa361').stroke();
+            
+            // Register fonts
+            const hasAmharic = fs.existsSync(boldFontPath);
+            if (hasAmharic) {
+                doc.registerFont('Amharic-Bold', boldFontPath);
+                if (fs.existsSync(regularFontPath)) {
+                    doc.registerFont('Amharic', regularFontPath);
+                }
             }
-        </style>
-    `;
-    html = html.replace('</head>', printStyles + '</head>');
-
-    html = html.replace('<div class="fill-blank-line" style="width: 88%; margin-left: 10px;"></div>', `<div class="fill-blank-line" style="width: 88%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`);
-    html = html.replace('<div class="fill-blank-line" style="width: 90%; margin-left: 10px;"></div>', `<div class="fill-blank-line" style="width: 90%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`);
-    html = html.replace('<div class="dotted-blank-line" style="width: 95px;"></div>', `<div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationAm}</div>`);
-    html = html.replace('<div class="dotted-blank-line" style="width: 185px;"></div>', `<div class="dotted-blank-line" style="width: 185px; text-align: center; font-weight: bold;">${programAm}</div>`);
-    html = html.replace('PROGRAM IN<div class="dotted-blank-line" style="width: 200px;"></div> AT CRAFTOPIA.', `PROGRAM IN <div class="dotted-blank-line" style="width: 200px; text-align: center; font-weight: bold;">${programEn}</div> AT CRAFTOPIA.`);
-    html = html.replace('THE TRAINING WAS CONDUCTED FOR<div class="dotted-blank-line" style="width: 95px;"></div>WEEK.', `THE TRAINING WAS CONDUCTED FOR <div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationEn}</div> WEEK.`);
-    html = html.replace('ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም', `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${finishDate}</div> ዓ.ም`);
-    html = html.replace('DATE: <div class="fill-blank-line" style="width: 150px;"></div>', `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`);
-    if (signatureBase64) {
-        html = html.replace('SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>', `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`);
-    }
-
-    let browser = null;
-    try {
-        const puppeteer = require('puppeteer-core');
-        const chromium = require('@sparticuz/chromium');
-        
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-            ignoreHTTPSErrors: true,
-        });
-        
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
-        
-        const pdfBytes = await page.pdf({
-            printBackground: true,
-            format: 'A4',
-            landscape: true,
-            margin: { top: 0, right: 0, bottom: 0, left: 0 }
-        });
-        
-        return pdfBytes;
-    } catch (err) {
-        console.error("Puppeteer error:", err);
-        throw err;
-    } finally {
-        if (browser !== null) {
-            await browser.close();
+            
+            // Add Logo
+            if (fs.existsSync(logoPath)) {
+                doc.image(logoPath, (doc.page.width - 120) / 2, 40, { width: 120 });
+            }
+            
+            // Title
+            let currentY = 170;
+            doc.font(hasAmharic ? 'Amharic-Bold' : 'Helvetica-Bold').fontSize(26).fillColor('#008751').text('ክራፍቶፒያ የእደጥበብ ትምህርት ቤት', 0, currentY, { align: 'center' });
+            currentY += 35;
+            doc.font('Helvetica-Bold').fontSize(16).fillColor('#005a36').text('CRAFTOPIA HANDCRAFTS SCHOOL', 0, currentY, { align: 'center' });
+            currentY += 25;
+            doc.font(hasAmharic ? 'Amharic-Bold' : 'Helvetica-Bold').fontSize(20).fillColor('#008751').text('የአጭር ጊዜ ስልጠና የምስክር ወረቀት', 0, currentY, { align: 'center' });
+            currentY += 30;
+            doc.font('Helvetica-Bold').fontSize(14).fillColor('#005a36').text('CERTIFICATE OF SHORT TERM TRAINING', 0, currentY, { align: 'center' });
+            
+            currentY += 50;
+            
+            // Left Column (Amharic)
+            const leftColX = 60;
+            const leftColWidth = 330;
+            doc.font(hasAmharic ? 'Amharic-Bold' : 'Helvetica-Bold').fontSize(18).fillColor('#005a36');
+            doc.text('ለ ', leftColX, currentY, { continued: true }).text(name, { underline: true });
+            
+            const amProgram = settings.cert_program_am || "እደጥበብ";
+            const amDuration = settings.cert_duration_am || "4";
+            doc.fontSize(14).text(`\n\nክራፍቶፒያ የእደጥበብ ትምህርት ቤት\nየአጭር ጊዜ ስልጠና ፕሮግራምን በ ${amProgram} በ ${amDuration} ሳምንት ጊዜ\nስለተከታተሉ ይህ የምስክር ወረቀት\nተበርክቶላቸዋል።`, leftColX, currentY + 15, { align: 'center', width: leftColWidth, lineGap: 12 });
+            
+            // Right Column (English)
+            const rightColX = doc.page.width - 60 - leftColWidth;
+            doc.font('Helvetica-Bold').fontSize(18).fillColor('#005a36');
+            doc.text('To ', rightColX, currentY, { continued: true }).text(name, { underline: true });
+            
+            const enProgram = settings.cert_program_en || "Hand Craft & Art";
+            const enDuration = settings.cert_duration_en || "4";
+            doc.fontSize(12).text(`\n\nTHIS CERTIFICATE IS PROUDLY PRESENTED FOR\nSUCCESSFULLY COMPLETING A SHORT-TERM TRAINING\nPROGRAM IN ${enProgram} AT CRAFTOPIA.\nTHE TRAINING WAS CONDUCTED FOR ${enDuration} WEEK.`, rightColX, currentY + 15, { align: 'center', width: leftColWidth, lineGap: 12 });
+            
+            // Divider
+            const midX = doc.page.width / 2;
+            doc.moveTo(midX, currentY - 10).lineTo(midX, currentY + 160).lineWidth(2).strokeColor('#005a36').stroke();
+            
+            // Footer
+            const footY = doc.page.height - 100;
+            doc.font(hasAmharic ? 'Amharic-Bold' : 'Helvetica-Bold').fontSize(14).text(`ቀን ${finishDate} ዓ.ም`, 60, footY);
+            doc.font('Helvetica-Bold').fontSize(12).text(`DATE: ${finishDate}`, 60, footY + 20);
+            
+            doc.text('SIGNED:', midX - 70, footY + 20);
+            doc.moveTo(midX - 10, footY + 32).lineTo(midX + 130, footY + 32).lineWidth(1).strokeColor('#005a36').stroke();
+            
+            if (settings.signature_base64) {
+                try {
+                    const b64 = settings.signature_base64.replace(/^data:image\/\w+;base64,/, "");
+                    const imgBuf = Buffer.from(b64, 'base64');
+                    doc.image(imgBuf, midX, footY - 10, { height: 40 });
+                } catch (e) {
+                    console.error("Signature processing error:", e);
+                }
+            }
+            
+            // Seal / Brand Tag
+            doc.font('Helvetica-Bold').fontSize(8).fillColor('#bfa361').text('MINA CARD Ar', 0, doc.page.height - 30, { align: 'center' });
+            
+            doc.end();
+        } catch (e) {
+            reject(e);
         }
-    }
+    });
 }
 
 
