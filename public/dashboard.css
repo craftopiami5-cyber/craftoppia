@@ -495,3 +495,95 @@ tr:hover td { background: rgba(255, 255, 255, 0.01); }
 .modal-btn { border: none; border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .modal-btn-cancel { background: rgba(255, 255, 255, 0.05); color: var(--text-main); }
 .modal-btn-confirm { background: var(--danger); color: #ffffff; }
+
+/* ==============================================================
+   RESPONSIVE & MOBILE DESIGN + UI ENHANCEMENTS 
+   ============================================================== */
+
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  header {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .user-profile {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  main {
+    padding: 16px;
+  }
+
+  /* Scrollable tabs */
+  .tab-bar {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  
+  .search-box {
+    width: 100%;
+  }
+
+  .actions-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+    border-radius: 12px;
+  }
+  
+  table th, table td {
+    padding: 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  /* Stacking columns */
+  div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  .tab-section#sectionTranslations > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .modal-card {
+    padding: 20px;
+    margin: 16px;
+  }
+}
+
+/* Attractiveness / Premium Feel */
+.tab-btn {
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+}
+.tab-btn.active {
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+.table-container::-webkit-scrollbar {
+    height: 6px;
+}
+.table-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+.btn-submit {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+}
+.btn-submit:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
