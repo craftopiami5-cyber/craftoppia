@@ -251,6 +251,11 @@ async function getRegistrationsPaginated(page = 1, limit = 10, status = null, se
             continue;
         }
 
+        // Filter out incomplete registrations (e.g., users who clicked /start but haven't entered name/phone)
+        if (!r.step || !r.step.includes("completed")) {
+            continue;
+        }
+
         if (search) {
             const q = search.toLowerCase();
             const nameVal = (r.name || "").toLowerCase();
