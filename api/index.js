@@ -326,7 +326,7 @@ async function generateApprovedInviteLinks(regName) {
         settings = {};
     }
 
-    const channelId = settings.telegram_channel_id || TELEGRAM_CHANNEL_ID || process.env.TELEGRAM_CHANNEL_ID || "-1004429840481";
+    const channelId = settings.telegram_channel_id || TELEGRAM_CHANNEL_ID || process.env.TELEGRAM_CHANNEL_ID || "-1003789578749";
     const durationDays = parseInt(settings.access_duration_days) || 30;
     const expireDate = Math.floor(Date.now() / 1000) + Math.max(1, durationDays) * 24 * 3600;
 
@@ -429,7 +429,86 @@ function parseIsoDatetime(isoStr) {
     return new Date(isoStr);
 }
 
-// PDF Generation is now handled client-side via /api/certificate route
+// Generate PDF Certificate Helper
+async function generateCertificatePdf(name, regDate, finishDate) {
+    const fs = require('fs');
+    const path = require('path');
+    const settings = await db.getPaymentSettings();
+
+    const templatePath = path.join(__dirname, 'IMG_6757.html');
+    let html = fs.readFileSync(templatePath, 'utf8');
+
+    const programAm  = settings.cert_program_am  || "እደጥበብ";
+    const programEn  = settings.cert_program_en  || "Hand Craft & Art";
+    const durationAm = settings.cert_duration_am || "4";
+    const durationEn = settings.cert_duration_en || "4";
+    const signatureBase64 = settings.signature_base64 || "";
+
+    const logoPath = path.join(__dirname, 'IMG_0892.PNG');
+    let logoBase64 = "";
+    if (fs.existsSync(logoPath)) {
+        logoBase64 = "data:image/png;base64," + fs.readFileSync(logoPath, 'base64');
+    }
+    html = html.replace('C:\\Users\\Administrator\\Desktop\\Projects\\craftopia\\IMG_0892.PNG', logoBase64);
+
+    const printStyles = `
+        <style>
+            @media print {
+                @page { size: A4 landscape; margin: 0; }
+                html, body { width: 297mm !important; height: 210mm !important; margin: 0 !important; padding: 0 !important; background-color: #ffffff !important; display: block !important; overflow: hidden !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .certificate-canvas { width: 297mm !important; height: 210mm !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; padding: 30px 40px !important; box-sizing: border-box !important; border: none !important; box-shadow: none !important; background-color: #ffffff !important; page-break-inside: avoid !important; }
+                .fill-blank-line, .dotted-blank-line { vertical-align: baseline !important; height: auto !important; text-align: center !important; font-weight: bold !important; display: inline-block !important; }
+                .date-container-left, .date-container-right { display: inline-flex !important; align-items: baseline !important; }
+            }
+        </style>
+    `;
+    html = html.replace('</head>', printStyles + '</head>');
+
+    html = html.replace('<div class="fill-blank-line" style="width: 88%; margin-left: 10px;"></div>', `<div class="fill-blank-line" style="width: 88%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`);
+    html = html.replace('<div class="fill-blank-line" style="width: 90%; margin-left: 10px;"></div>', `<div class="fill-blank-line" style="width: 90%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`);
+    html = html.replace('<div class="dotted-blank-line" style="width: 95px;"></div>', `<div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationAm}</div>`);
+    html = html.replace('<div class="dotted-blank-line" style="width: 185px;"></div>', `<div class="dotted-blank-line" style="width: 185px; text-align: center; font-weight: bold;">${programAm}</div>`);
+    html = html.replace('PROGRAM IN<div class="dotted-blank-line" style="width: 200px;"></div> AT CRAFTOPIA.', `PROGRAM IN <div class="dotted-blank-line" style="width: 200px; text-align: center; font-weight: bold;">${programEn}</div> AT CRAFTOPIA.`);
+    html = html.replace('THE TRAINING WAS CONDUCTED FOR<div class="dotted-blank-line" style="width: 95px;"></div>WEEK.', `THE TRAINING WAS CONDUCTED FOR <div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationEn}</div> WEEK.`);
+    html = html.replace('ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም', `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${finishDate}</div> ዓ.ም`);
+    html = html.replace('DATE: <div class="fill-blank-line" style="width: 150px;"></div>', `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`);
+    if (signatureBase64) {
+        html = html.replace('SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>', `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`);
+    }
+
+    let browser = null;
+    try {
+        const puppeteer = require('puppeteer-core');
+        const chromium = require('@sparticuz/chromium');
+        
+        browser = await puppeteer.launch({
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
+            ignoreHTTPSErrors: true,
+        });
+        
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        
+        const pdfBytes = await page.pdf({
+            printBackground: true,
+            format: 'A4',
+            landscape: true,
+            margin: { top: 0, right: 0, bottom: 0, left: 0 }
+        });
+        
+        return pdfBytes;
+    } catch (err) {
+        console.error("Puppeteer error:", err);
+        throw err;
+    } finally {
+        if (browser !== null) {
+            await browser.close();
+        }
+    }
+}
 
 
 // Send Next Quiz Helper
@@ -465,15 +544,47 @@ async function sendNextQuizQuestion(chatId) {
             const reg = await db.getRegistration(chatId);
             const name = reg ? (reg.name || "Student") : "Student";
             const [lang] = getLangAndStep(reg);
-            const certUrl = `https://craftoppia.vercel.app/api/certificate?id=${chatId}`;
             
-            const msg = getMsg(lang, "course_completed_msg").replace("{name}", name);
+            let pdfBytes = null;
+            try {
+                const regDateStr = reg ? (reg.created_at || "") : "";
+                let regDate = "Unknown";
+                if (regDateStr) {
+                    try { regDate = regDateStr.split("T")[0]; } catch (e) {}
+                }
+                const finishDate = new Date().toISOString().split("T")[0];
+                pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
+            } catch (pdfErr) {
+                console.error("Error generating completion certificate PDF:", pdfErr.message);
+            }
+            
+            const caption = getMsg(lang, "course_completed_msg").replace("{name}", name);
+            
+            if (pdfBytes) {
+                const FormData = require('form-data');
+                const form = new FormData();
+                form.append('chat_id', String(chatId));
+                form.append('caption', caption);
+                form.append('parse_mode', 'Markdown');
+                form.append('document', pdfBytes, {
+                    filename: 'Certificate.pdf',
+                    contentType: 'application/pdf'
+                });
+                
+                try {
+                    await axios.post(`${TELEGRAM_API_URL}/sendDocument`, form, { headers: form.getHeaders() });
+                    return;
+                } catch (sendErr) {
+                    console.error("Error sending auto-generated certificate document:", sendErr.message);
+                }
+            }
+            
             const kb = {
                 inline_keyboard: [
-                    [{ text: "View & Download Certificate 📜", url: certUrl }]
+                    [{ text: "Get Certificate 📜", callback_data: "get_certificate" }]
                 ]
             };
-            await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg + `\n\n👉 [Click here to View & Download your Certificate](${certUrl})`, parse_mode: "Markdown", reply_markup: kb });
+            await sendTelegramRequest("sendMessage", { chat_id: chatId, text: caption, parse_mode: "Markdown", reply_markup: kb });
         } else {
             await db.upsertUserQuizProgress(chatId, { last_completed_at: new Date().toISOString() });
             
@@ -1772,7 +1883,7 @@ app.post('/api/bot', async (req, res) => {
             }
         } else if (callbackData === "get_certificate") {
             const chatId = callbackQuery.message.chat.id;
-            await sendTelegramRequest("answerCallbackQuery", { callback_query_id: callbackQueryId });
+            await sendTelegramRequest("answerCallbackQuery", { callback_query_id: callbackQueryId, text: "Generating certificate, please wait..." });
             
             await sendTelegramRequest("editMessageReplyMarkup", {
                 chat_id: chatId,
@@ -1782,19 +1893,40 @@ app.post('/api/bot', async (req, res) => {
             
             const reg = await db.getRegistration(chatId);
             const name = reg ? (reg.name || "Student") : "Student";
-            const [lang] = getLangAndStep(reg);
+            const regDateStr = reg ? (reg.created_at || "") : "";
             
-            const certUrl = `https://craftoppia.vercel.app/api/certificate?id=${chatId}`;
+            let regDate = "Unknown";
+            if (regDateStr) {
+                try { regDate = regDateStr.split("T")[0]; } catch (e) { /* ignore */ }
+            }
+            const finishDate = new Date().toISOString().split("T")[0];
+            
+            const [lang] = getLangAndStep(reg);
             const caption = getMsg(lang, "course_completed_msg").replace("{name}", name);
             
-            await sendTelegramRequest("sendMessage", {
-                chat_id: chatId,
-                text: `${caption}\n\n👉 [Click here to View & Download your Certificate](${certUrl})`,
-                parse_mode: "Markdown",
-                reply_markup: {
-                    inline_keyboard: [[{ text: "View & Download Certificate 📜", url: certUrl }]]
-                }
-            });
+            try {
+                const pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
+                
+                const FormData = require('form-data');
+                const form = new FormData();
+                form.append('chat_id', chatId);
+                form.append('caption', caption);
+                form.append('parse_mode', 'Markdown');
+                form.append('document', pdfBytes, {
+                    filename: 'Certificate.pdf',
+                    contentType: 'application/pdf'
+                });
+                
+                const url = `${TELEGRAM_API_URL}/sendDocument`;
+                await axios.post(url, form, { headers: form.getHeaders() });
+            } catch (e) {
+                console.error("Error generating/sending PDF:", e.message);
+                await sendTelegramRequest("sendMessage", {
+                    chat_id: chatId,
+                    text: "Sorry, there was an error generating your certificate. Please try again later.",
+                    reply_markup: { inline_keyboard: [[{ text: "Try Again 🔄", callback_data: "get_certificate" }]] }
+                });
+            }
         }
         return res.send("OK");
     }
