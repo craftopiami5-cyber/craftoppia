@@ -63,7 +63,9 @@ const OFFLINE_DB = {
     progress: {},
     languages: [
         { code: "en", name: "English", is_active: true },
-        { code: "am", name: "አማርኛ", is_active: true }
+        { code: "am", name: "አማርኛ", is_active: true },
+        { code: "om", name: "Afaan Oromoo", is_active: true },
+        { code: "ti", name: "ትግርኛ", is_active: true }
     ],
     translations: [],
     questions: [
