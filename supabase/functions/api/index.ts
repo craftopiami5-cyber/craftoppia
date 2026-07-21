@@ -547,7 +547,7 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
       try {
         const b64 = settings.seal_base64.split(",")[1];
         const sealBuf = Buffer.from(b64, "base64");
-        doc.image(sealBuf, rx + 20, 350, { fit: [180, 180] });
+        doc.image(sealBuf, rx - 25, 320, { fit: [270, 270] });
       } catch (sealErr: any) {
         console.error("Error drawing seal on PDF in Deno:", sealErr.message);
       }
