@@ -806,17 +806,15 @@ app.post('/api/login/step1', async (req, res) => {
             `Your verification code is: \`${code}\`\n\n` +
             `*Note: This code expires in 10 minutes. If this wasn't you, please change your password immediately.*`
         );
-        sendTelegramRequest("sendMessage", {
+        const telegramRes = await sendTelegramRequest("sendMessage", {
             chat_id: chatId,
             text: botMsg,
             parse_mode: "Markdown"
-        }).then(telegramRes => {
-            if (!telegramRes || !telegramRes.ok) {
-                console.warn(`[WARNING] Failed to send verification code via Telegram. Code is: ${code}`);
-            }
-        }).catch(err => {
-            console.error("Error sending Telegram code:", err.message);
         });
+        
+        if (!telegramRes || !telegramRes.ok) {
+            console.warn(`[WARNING] Failed to send verification code via Telegram. Response:`, telegramRes);
+        }
 
         return res.json({ success: true, message: "Verification code sent to your Telegram chat." });
     } catch (handlerErr) {
