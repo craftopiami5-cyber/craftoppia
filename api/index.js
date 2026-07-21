@@ -375,23 +375,8 @@ async function generateApprovedInviteLinks(regName, lang = "en") {
     } else {
         console.error("Failed to generate main invite link:", inviteRes1 ? inviteRes1.description : "Unknown error");
     }
-    const secondGroupId = "-5500423208";
-    const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
-        chat_id: secondGroupId,
-        member_limit: 1,
-        name: `Group Link for ${regName || getDefaultStudentName(lang)}`
-    });
-
-    let inviteLink2 = "";
-    if (inviteRes2 && inviteRes2.ok) {
-        inviteLink2 = inviteRes2.result.invite_link;
-    } else {
-        console.error("Failed to generate group invite link:", inviteRes2 ? inviteRes2.description : "Unknown error");
-    }
-
     let links = [];
     if (inviteLink1) links.push(inviteLink1);
-    if (inviteLink2) links.push(inviteLink2);
 
     return links.length > 0 ? links.join(" ") : "Error: Failed to generate links";
 }
@@ -399,15 +384,14 @@ async function generateApprovedInviteLinks(regName, lang = "en") {
 function formatInviteLinksForUser(inviteLinkStr, lang) {
     if (!inviteLinkStr) return "";
     const links = inviteLinkStr.trim().split(/\s+/);
-    if (links.length <= 1) return inviteLinkStr;
     if (lang === "am") {
-        return `ዋናው ቻናል፡ ${links[0]}\nየግል ግሩፕ፡ ${links[1]}`;
+        return `ዋናው ቻናል፡ ${links[0]}`;
     } else if (lang === "om" || lang === "or") {
-        return `Chaanaalii Guddaa: ${links[0]}\nGaree Dhuunfaa: ${links[1]}`;
+        return `Chaanaalii Guddaa: ${links[0]}`;
     } else if (lang === "ti" || lang === "tg") {
-        return `ቀንዲ ቻነል፡ ${links[0]}\nናይ ውልቀ ግሩፕ፡ ${links[1]}`;
+        return `ቀንዲ ቻነል፡ ${links[0]}`;
     }
-    return `Main Channel: ${links[0]}\nPrivate Group: ${links[1]}`;
+    return `Main Channel: ${links[0]}`;
 }
 
 
@@ -1793,12 +1777,18 @@ app.post('/api/bot', async (req, res) => {
                     }
                     
                     const links = inviteLink.trim().split(/\s+/);
-                    const newText = `Approved ✅\n\nName: ${reg.name}\nPhone: ${reg.phone}\nReceipt: ${reg.receipt_number}\nMain Channel: ${links[0] || "-"}\nPrivate Group: ${links[1] || "-"}`;
-                    await sendTelegramRequest("editMessageText", {
+                    const newText = `Approved ✅\n\nName: ${reg.name}\nPhone: ${reg.phone}\nReceipt: ${reg.receipt_number}\nMain Channel: ${links[0] || "-"}`;
+                    const isPhoto = callbackQuery.message && callbackQuery.message.photo;
+                    const editMethod = isPhoto ? "editMessageCaption" : "editMessageText";
+                    const payload = {
                         chat_id: adminChatId,
                         message_id: adminMessageId,
-                        text: newText
-                    });
+                        reply_markup: { inline_keyboard: [] }
+                    };
+                    if (isPhoto) payload.caption = newText;
+                    else payload.text = newText;
+                    
+                    await sendTelegramRequest(editMethod, payload);
                     await sendTelegramRequest("answerCallbackQuery", { callback_query_id: callbackQueryId, text: "Approved successfully!" });
                 } catch (err) {
                     console.error("Error during callback approve:", err.message);
@@ -1874,11 +1864,17 @@ app.post('/api/bot', async (req, res) => {
             });
             
             const newText = `Declined ❌\n\nName: ${reg.name}\nPhone: ${reg.phone}\nReceipt: ${reg.receipt_number}\nReason: ${reason}`;
-            await sendTelegramRequest("editMessageText", {
+            const isPhoto = callbackQuery.message && callbackQuery.message.photo;
+            const editMethod = isPhoto ? "editMessageCaption" : "editMessageText";
+            const payload = {
                 chat_id: adminChatId,
                 message_id: adminMessageId,
-                text: newText
-            });
+                reply_markup: { inline_keyboard: [] }
+            };
+            if (isPhoto) payload.caption = newText;
+            else payload.text = newText;
+            
+            await sendTelegramRequest(editMethod, payload);
             await sendTelegramRequest("answerCallbackQuery", { callback_query_id: callbackQueryId, text: "Declined successfully." });
         } else if (callbackData.startsWith("ans:")) {
             const [, qId, optIdxStr] = callbackData.split(":");
