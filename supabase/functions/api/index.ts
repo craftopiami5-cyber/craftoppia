@@ -176,6 +176,29 @@ function buildStep(lang: string, step: string) {
   return `${lang}|${step}`;
 }
 
+function formatInviteLinksForUser(inviteLinkStr: string, lang: string): string {
+  if (!inviteLinkStr) return "";
+  const links = inviteLinkStr.trim().split(/\s+/);
+  const mainLink = links[0] || "";
+  const groupLink = links[1] || "";
+  if (lang === "am") {
+    let text = `ዋናው ቻናል፡ ${mainLink}`;
+    if (groupLink) text += `\nየውስጥ ግሩፕ፡ ${groupLink}`;
+    return text;
+  } else if (lang === "om" || lang === "or") {
+    let text = `Chaanaalii Guddaa: ${mainLink}`;
+    if (groupLink) text += `\nKoree Dhuunfaa: ${groupLink}`;
+    return text;
+  } else if (lang === "ti" || lang === "tg") {
+    let text = `ቀንዲ ቻነል፡ ${mainLink}`;
+    if (groupLink) text += `\nናይ ውልቂ ጉጅለ፡ ${groupLink}`;
+    return text;
+  }
+  let text = `Main Channel: ${mainLink}`;
+  if (groupLink) text += `\nPrivate Group: ${groupLink}`;
+  return text;
+}
+
 function getMenuKeyboard(lang = "en") {
   return {
     keyboard: [
@@ -616,27 +639,48 @@ async function checkAndApplyReferralReward(referrerChatId: number) {
       const sDict = settings && settings.verification_code ? JSON.parse(settings.verification_code) : {};
       const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1003789578749";
 
-      const inviteRes = await sendTelegramRequest("createChatInviteLink", {
+      // Generate main channel invite link dynamically
+      const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
         chat_id: channelId,
         member_limit: 1,
         name: `Free Referral Link for ${referrerReg.name || 'Student'}`
       });
 
-      if (inviteRes && inviteRes.ok) {
-        const inviteLink = inviteRes.result.invite_link;
+      // Generate private group invite link dynamically for group ID -1004377079119
+      const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
+        chat_id: "-1004377079119",
+        member_limit: 1,
+        name: `Free Group Link for ${referrerReg.name || 'Student'}`
+      });
 
+      let inviteLink1 = "";
+      if (inviteRes1 && inviteRes1.ok) {
+        inviteLink1 = inviteRes1.result.invite_link;
+      }
+      let inviteLink2 = "";
+      if (inviteRes2 && inviteRes2.ok) {
+        inviteLink2 = inviteRes2.result.invite_link;
+      }
+
+      const links: string[] = [];
+      if (inviteLink1) links.push(inviteLink1);
+      if (inviteLink2) links.push(inviteLink2);
+
+      if (links.length > 0) {
+        const combinedInviteLink = links.join(" ");
         const durationDays = parseInt(sDict.access_duration_days) || 30;
         const expiresAt = new Date(Date.now() + durationDays * 24 * 3600 * 1000).toISOString();
 
         await supabase
           .from("registrations")
-          .update({ status: "approved", invite_link: inviteLink, expires_at: expiresAt })
+          .update({ status: "approved", invite_link: combinedInviteLink, expires_at: expiresAt })
           .eq("id", referrerReg.id);
 
         const [lang] = getLangAndStep(referrerReg);
+        const formattedLinks = formatInviteLinksForUser(combinedInviteLink, lang);
         const msg = getMsg(lang, "referral_reward_msg")
           .replace("{name}", referrerReg.name || (lang === "am" ? "ተማሪ" : "Student"))
-          .replace("{link}", inviteLink);
+          .replace("{link}", formattedLinks);
 
         await sendTelegramRequest("sendMessage", {
           chat_id: referrerChatId,
@@ -767,20 +811,39 @@ async function handleRequest(req: Request): Promise<Response> {
             const sDict = settings && settings.verification_code ? JSON.parse(settings.verification_code) : {};
             const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1003789578749";
 
-            const inviteRes = await sendTelegramRequest("createChatInviteLink", {
+            const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
               chat_id: channelId,
               member_limit: 1,
-              name: `One-time Link for ${reg.name || 'Student'}`
+              name: `Main Link for ${reg.name || 'Student'}`
+            });
+
+            const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
+              chat_id: "-1004377079119",
+              member_limit: 1,
+              name: `Group Link for ${reg.name || 'Student'}`
             });
             
-            if (inviteRes && inviteRes.ok) {
-              const inviteLink = inviteRes.result.invite_link;
+            let inviteLink1 = "";
+            if (inviteRes1 && inviteRes1.ok) {
+              inviteLink1 = inviteRes1.result.invite_link;
+            }
+            let inviteLink2 = "";
+            if (inviteRes2 && inviteRes2.ok) {
+              inviteLink2 = inviteRes2.result.invite_link;
+            }
+
+            const links: string[] = [];
+            if (inviteLink1) links.push(inviteLink1);
+            if (inviteLink2) links.push(inviteLink2);
+            
+            if (links.length > 0) {
+              const combinedInviteLink = links.join(" ");
               const durationDays = parseInt(sDict.access_duration_days) || 30;
               const expiresAt = new Date(Date.now() + durationDays * 24 * 3600 * 1000).toISOString();
               
               await supabase.from("registrations").update({ 
                 status: "approved", 
-                invite_link: inviteLink,
+                invite_link: combinedInviteLink,
                 expires_at: expiresAt
               }).eq("id", regId);
               
@@ -788,10 +851,11 @@ async function handleRequest(req: Request): Promise<Response> {
                 await checkAndApplyReferralReward(reg.referred_by_chat_id);
               }
               
+              const formattedLinks = formatInviteLinksForUser(combinedInviteLink, lang);
               const msg = getMsg(lang, "receipt_approved_msg")
                 .replace("{name}", reg.name)
                 .replace("{receipt}", reg.receipt_number)
-                .replace("{link}", inviteLink);
+                .replace("{link}", formattedLinks);
               
               await sendTelegramRequest("sendMessage", {
                 chat_id: reg.chat_id,

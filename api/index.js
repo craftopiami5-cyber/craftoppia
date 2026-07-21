@@ -390,8 +390,24 @@ async function generateApprovedInviteLinks(regName, lang = "en") {
     } else {
         console.error("Failed to generate main invite link:", inviteRes1 ? inviteRes1.description : "Unknown error");
     }
+
+    // Generate private group invite link dynamically for group ID -1004377079119
+    const inviteRes2 = await sendTelegramRequest("createChatInviteLink", {
+        chat_id: "-1004377079119",
+        member_limit: 1,
+        name: `Group Link for ${regName || getDefaultStudentName(lang)}`
+    });
+
+    let inviteLink2 = "";
+    if (inviteRes2 && inviteRes2.ok) {
+        inviteLink2 = inviteRes2.result.invite_link;
+    } else {
+        console.error("Failed to generate private group invite link:", inviteRes2 ? inviteRes2.description : "Unknown error");
+    }
+
     let links = [];
     if (inviteLink1) links.push(inviteLink1);
+    if (inviteLink2) links.push(inviteLink2);
 
     return links.length > 0 ? links.join(" ") : "Error: Failed to generate links";
 }
@@ -399,14 +415,24 @@ async function generateApprovedInviteLinks(regName, lang = "en") {
 function formatInviteLinksForUser(inviteLinkStr, lang) {
     if (!inviteLinkStr) return "";
     const links = inviteLinkStr.trim().split(/\s+/);
+    const mainLink = links[0] || "";
+    const groupLink = links[1] || "";
     if (lang === "am") {
-        return `ዋናው ቻናል፡ ${links[0]}`;
+        let text = `ዋናው ቻናል፡ ${mainLink}`;
+        if (groupLink) text += `\nየውስጥ ግሩፕ፡ ${groupLink}`;
+        return text;
     } else if (lang === "om" || lang === "or") {
-        return `Chaanaalii Guddaa: ${links[0]}`;
+        let text = `Chaanaalii Guddaa: ${mainLink}`;
+        if (groupLink) text += `\nKoree Dhuunfaa: ${groupLink}`;
+        return text;
     } else if (lang === "ti" || lang === "tg") {
-        return `ቀንዲ ቻነል፡ ${links[0]}`;
+        let text = `ቀንዲ ቻነል፡ ${mainLink}`;
+        if (groupLink) text += `\nናይ ውልቂ ጉጅለ፡ ${groupLink}`;
+        return text;
     }
-    return `Main Channel: ${links[0]}`;
+    let text = `Main Channel: ${mainLink}`;
+    if (groupLink) text += `\nPrivate Group: ${groupLink}`;
+    return text;
 }
 
 
