@@ -487,6 +487,7 @@ async function generateCertificatePdf(name, regDate, finishDate) {
     const durationAm = settings.cert_duration_am || "4";
     const durationEn = settings.cert_duration_en || "4";
     const signatureBase64 = settings.signature_base64 || "";
+    const sealBase64 = settings.seal_base64 || "";
 
     let logoPath = path.join(__dirname, 'IMG_0892.PNG');
     if (!fs.existsSync(logoPath)) {
@@ -522,8 +523,15 @@ async function generateCertificatePdf(name, regDate, finishDate) {
     html = html.replace('THE TRAINING WAS CONDUCTED FOR<div class="dotted-blank-line" style="width: 95px;"></div>WEEK.', `THE TRAINING WAS CONDUCTED FOR <div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationEn}</div> WEEK.`);
     html = html.replace('ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም', `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${finishDate}</div> ዓ.ም`);
     html = html.replace('DATE: <div class="fill-blank-line" style="width: 150px;"></div>', `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`);
+    
     if (signatureBase64) {
         html = html.replace('SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>', `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`);
+    }
+    
+    if (sealBase64) {
+        html = html.replace('<!-- SEAL_PLACEHOLDER -->', `<div class="seal-container" style="margin-right: 20px; display: flex; align-items: center;"><img src="${sealBase64}" style="max-height: 75px; max-width: 75px; object-fit: contain;"></div>`);
+    } else {
+        html = html.replace('<!-- SEAL_PLACEHOLDER -->', '');
     }
 
     try {
@@ -2707,6 +2715,7 @@ app.get('/api/certificate', async (req, res) => {
     const durationAm = settings.cert_duration_am || "4";
     const durationEn = settings.cert_duration_en || "4";
     const signatureBase64 = settings.signature_base64 || "";
+    const sealBase64 = settings.seal_base64 || "";
 
     const logoPath = path.join(__dirname, 'IMG_0892.PNG');
     let logoBase64 = "";
@@ -2747,11 +2756,18 @@ app.get('/api/certificate', async (req, res) => {
         'DATE: <div class="fill-blank-line" style="width: 150px;"></div>',
         `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`
     );
+    
     if (signatureBase64) {
         html = html.replace(
             'SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>',
             `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`
         );
+    }
+    
+    if (sealBase64) {
+        html = html.replace('<!-- SEAL_PLACEHOLDER -->', `<div class="seal-container" style="margin-right: 20px; display: flex; align-items: center;"><img src="${sealBase64}" style="max-height: 75px; max-width: 75px; object-fit: contain;"></div>`);
+    } else {
+        html = html.replace('<!-- SEAL_PLACEHOLDER -->', '');
     }
 
     const script = `

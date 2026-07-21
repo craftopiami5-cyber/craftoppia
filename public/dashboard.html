@@ -250,6 +250,16 @@
               </div>
             </div>
           </div>
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Upload Seal/Stamp Image (PNG with transparent bg recommended)</label>
+            <div style="display: flex; gap: 16px; align-items: center;">
+              <input type="file" id="uploadSeal" accept="image/*" class="search-box" style="width: auto; background: var(--input-bg);" onchange="handleSealSelect(event)">
+              <div style="background: rgba(255,255,255,0.05); border: 1px dashed var(--card-border); border-radius: 8px; padding: 4px; display: flex; align-items: center; justify-content: center; min-width: 120px; height: 60px;">
+                <img id="sealPreview" style="max-width: 110px; max-height: 50px; display: none;" alt="Seal Preview">
+                <span id="noSealText" style="font-size: 11px; color: var(--text-muted);">No Seal</span>
+              </div>
+            </div>
+          </div>
 
           <button type="submit" class="btn-submit" style="margin-top: 10px;">Save Settings</button>
         </form>

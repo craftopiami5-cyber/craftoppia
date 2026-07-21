@@ -535,7 +535,8 @@ async function getPaymentSettings() {
         cert_program_am: "የእጅ ሥራና ጥበብ ስልጠና",
         cert_duration_en: "4 Weeks",
         cert_duration_am: "4 ሳምንት",
-        signature_base64: null
+        signature_base64: null,
+        seal_base64: null
     };
 }
 

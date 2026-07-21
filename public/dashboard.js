@@ -336,6 +336,17 @@ async function loadPaymentSettings() {
         sigPreview.style.display = 'none';
         sigNoText.style.display = 'block';
       }
+
+      const sealPreview = document.getElementById('sealPreview');
+      const sealNoText = document.getElementById('noSealText');
+      if (data.seal_base64) {
+        sealPreview.src = data.seal_base64;
+        sealPreview.style.display = 'block';
+        sealNoText.style.display = 'none';
+      } else {
+        sealPreview.style.display = 'none';
+        sealNoText.style.display = 'block';
+      }
     }
   } catch(e) {
     console.error("Error loading settings:", e);
@@ -345,6 +356,7 @@ async function loadPaymentSettings() {
 document.getElementById('paymentSettingsForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const sigPreviewSrc = document.getElementById('signaturePreview').src;
+  const sealPreviewSrc = document.getElementById('sealPreview').src;
   const payload = {
     amount: document.getElementById('setAmount').value,
     telegram_channel_id: document.getElementById('setChannelId').value,
@@ -357,7 +369,8 @@ document.getElementById('paymentSettingsForm').addEventListener('submit', async 
     cert_program_am: document.getElementById('setCertProgramAm').value,
     cert_duration_en: document.getElementById('setCertDurationEn').value,
     cert_duration_am: document.getElementById('setCertDurationAm').value,
-    signature_base64: sigPreviewSrc && sigPreviewSrc.startsWith('data:') ? sigPreviewSrc : (sigPreviewSrc || null)
+    signature_base64: sigPreviewSrc && sigPreviewSrc.startsWith('data:') ? sigPreviewSrc : (sigPreviewSrc || null),
+    seal_base64: sealPreviewSrc && sealPreviewSrc.startsWith('data:') ? sealPreviewSrc : (sealPreviewSrc || null)
   };
   try {
     const res = await fetch("/api/admin/settings", {
@@ -1083,6 +1096,49 @@ function handleSignatureSelect(event) {
       
       const preview = document.getElementById('signaturePreview');
       const noText = document.getElementById('noSignatureText');
+      preview.src = canvas.toDataURL('image/png');
+      preview.style.display = 'block';
+      noText.style.display = 'none';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleSealSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Resize to max 300px width/height to keep payload lightweight
+      const maxW = 300;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      // Auto-remove white/light background to make it transparent
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i+1];
+        const b = data[i+2];
+        if (r > 190 && g > 190 && b > 190) {
+          data[i+3] = 0;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+      
+      const preview = document.getElementById('sealPreview');
+      const noText = document.getElementById('noSealText');
       preview.src = canvas.toDataURL('image/png');
       preview.style.display = 'block';
       noText.style.display = 'none';

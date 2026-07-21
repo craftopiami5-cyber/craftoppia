@@ -537,6 +537,16 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
       }
     }
 
+    if (settings.seal_base64) {
+      try {
+        const b64 = settings.seal_base64.split(",")[1];
+        const sealBuf = Buffer.from(b64, "base64");
+        doc.image(sealBuf, rx + 125, 415, { fit: [55, 55] });
+      } catch (sealErr: any) {
+        console.error("Error drawing seal on PDF in Deno:", sealErr.message);
+      }
+    }
+
     // DATE line
     doc.fillColor(forestGreen).font(latFont(true)).fontSize(9).text("DATE:", rx + 195, 461);
     doc.moveTo(rx + 228, 473).lineTo(rx + rw, 473).strokeColor(forestGreen).lineWidth(1).stroke();
