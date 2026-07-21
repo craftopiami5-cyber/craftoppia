@@ -358,6 +358,32 @@ async function getFontBold(): Promise<Uint8Array> {
   return cachedFontBold;
 }
 
+function gregorianToEthiopianString(gregDateStr: string): string {
+  if (!gregDateStr) return "";
+  try {
+    const parts = gregDateStr.split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    
+    const a = Math.floor((14 - month) / 12);
+    const y = year + 4800 - a;
+    const m = month + 12 * a - 3;
+    const jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+    
+    const r = (jdn - 1723856) % 1461;
+    const n = (r % 365) + 365 * Math.floor(r / 1460);
+    
+    const ethYear = 4 * Math.floor((jdn - 1723856) / 1461) + Math.floor(r / 365) - Math.floor(r / 1460);
+    const ethMonth = Math.floor(n / 30) + 1;
+    const ethDay = (n % 30) + 1;
+    
+    return `${ethDay}/${ethMonth}/${ethYear}`;
+  } catch (_e) {
+    return gregDateStr;
+  }
+}
+
 async function generateCertificatePdf(name: string, regDate: string, finishDate: string, name2?: string): Promise<Uint8Array> {
   const actualName2 = name2 || name;
   let settings: any = {};
@@ -407,7 +433,7 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
 
     // ── SECTION 2: Header and Logo ─────────────────────────────────────────
     // 1. Institution Name (Amharic) - Located above the logo
-    doc.fillColor(forestGreen).font(ethFont(true)).fontSize(17)
+    doc.fillColor(forestGreen).font(ethFont(true)).fontSize(21)
        .text("ክራፍቶፒያ የእደጥበብ ሙያዎች ማሰልጠኛ ተቋም", 0, 42, { align: "center", width: 841.89 });
 
     // 2. Logo Emblem (Centred at 420.94)
@@ -420,15 +446,15 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     doc.circle(logoX, logoY, 4).fillColor(forestGreen).fill();
 
     // 3. Institution Name (English) - Located below the logo
-    doc.fillColor(forestGreen).font(latFont(true)).fontSize(14)
+    doc.fillColor(forestGreen).font(latFont(true)).fontSize(17)
        .text("CRAFTOPIA HANDCRAFTS SCHOOL", 0, 118, { align: "center", width: 841.89 });
 
     // 4. Certificate Title (Amharic)
-    doc.fillColor(forestGreen).font(ethFont(true)).fontSize(13)
-       .text("የአጭር ስልጠና የምስክር ወረቀት", 0, 138, { align: "center", width: 841.89 });
+    doc.fillColor(forestGreen).font(ethFont(true)).fontSize(16)
+       .text("የአጭር ጊዜ ስልጠና የምስክር ወረቀት", 0, 138, { align: "center", width: 841.89 });
 
     // 5. Certificate Title (English)
-    doc.fillColor(forestGreen).font(latFont(true)).fontSize(11)
+    doc.fillColor(forestGreen).font(latFont(true)).fontSize(14)
        .text("CERTIFICATE OF SHORT TERM TRAINING", 0, 155, { align: "center", width: 841.89 });
 
     // ── Divider Lines (Double vertical lines in gold) ──────────────────────
@@ -514,8 +540,9 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     // "ዓ.ም" label
     doc.fillColor(forestGreen).font(ethFont(false)).fontSize(11).text("ዓ.ም", lx + 205, 461);
     // Dynamic Date value
-    doc.fillColor(forestGreen).font(autoFont(finishDate, true)).fontSize(11)
-       .text(finishDate, lx + 50, 458, { width: 150, align: "center" });
+    const ethFinishDate = gregorianToEthiopianString(finishDate);
+    doc.fillColor(forestGreen).font(autoFont(ethFinishDate, true)).fontSize(11)
+       .text(ethFinishDate, lx + 50, 458, { width: 150, align: "center" });
 
     // Right Side (English Footer)
     // A small gold decorative sigil matching the stylized "spark" from the logo in the center
