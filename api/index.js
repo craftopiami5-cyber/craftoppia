@@ -533,7 +533,7 @@ async function generateCertificatePdf(name, regDate, finishDate, name2) {
             insideHtml += `<img src="${signatureBase64}" style="max-height: 45px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); z-index: 1;">`;
         }
         if (sealBase64) {
-            insideHtml += `<img src="${sealBase64}" style="position: absolute; max-height: 150px; max-width: 150px; object-fit: contain; bottom: -50px; left: 50%; transform: translateX(-50%); z-index: 2; opacity: 0.8; pointer-events: none;">`;
+            insideHtml += `<img src="${sealBase64}" style="position: absolute; max-height: 200px; max-width: 200px; object-fit: contain; bottom: -75px; left: 50%; transform: translateX(-50%); z-index: 2; opacity: 0.78; pointer-events: none;">`;
         }
         signatureHtml = `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;">${insideHtml}</div>`;
     }
@@ -2800,7 +2800,7 @@ app.get('/api/certificate', async (req, res) => {
             insideHtml += `<img src="${signatureBase64}" style="max-height: 45px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); z-index: 1;">`;
         }
         if (sealBase64) {
-            insideHtml += `<img src="${sealBase64}" style="position: absolute; max-height: 150px; max-width: 150px; object-fit: contain; bottom: -50px; left: 50%; transform: translateX(-50%); z-index: 2; opacity: 0.8; pointer-events: none;">`;
+            insideHtml += `<img src="${sealBase64}" style="position: absolute; max-height: 200px; max-width: 200px; object-fit: contain; bottom: -75px; left: 50%; transform: translateX(-50%); z-index: 2; opacity: 0.78; pointer-events: none;">`;
         }
         signatureHtml = `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;">${insideHtml}</div>`;
     }
