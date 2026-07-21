@@ -1340,25 +1340,11 @@ app.post('/api/languages', requireAuth, async (req, res) => {
     return res.status(500).json({ message: "Failed to save language" });
 });
 
-// Proxy for Telegram photos and private Supabase photos
+// Proxy for Telegram photos
 app.get('/api/admin/photo/*', requireAuth, async (req, res) => {
     try {
         const fileId = req.params[0];
         
-        if (fileId.startsWith('http')) {
-            // Fetch from Supabase using service key to bypass private bucket restrictions
-            const imgRes = await axios.get(fileId, { 
-                responseType: 'stream',
-                headers: {
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": `Bearer ${SUPABASE_KEY}`
-                }
-            });
-            res.setHeader('Content-Type', 'image/jpeg');
-            return imgRes.data.pipe(res);
-        }
-
-        // Fallback to Telegram file ID
         const fileInfo = await sendTelegramRequest("getFile", { file_id: fileId });
         if (fileInfo && fileInfo.ok && fileInfo.result && fileInfo.result.file_path) {
             const filePath = fileInfo.result.file_path;
