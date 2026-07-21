@@ -1337,6 +1337,26 @@ app.post('/api/languages', requireAuth, async (req, res) => {
     return res.status(500).json({ message: "Failed to save language" });
 });
 
+// Proxy for Telegram photos
+app.get('/api/admin/photo/:fileId', requireAuth, async (req, res) => {
+    try {
+        const fileId = req.params.fileId;
+        const fileInfo = await sendTelegramRequest("getFile", { file_id: fileId });
+        if (fileInfo && fileInfo.ok && fileInfo.result && fileInfo.result.file_path) {
+            const filePath = fileInfo.result.file_path;
+            const downloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${filePath}`;
+            const imgRes = await axios.get(downloadUrl, { responseType: 'stream' });
+            res.setHeader('Content-Type', 'image/jpeg');
+            imgRes.data.pipe(res);
+        } else {
+            res.status(404).send("File not found on Telegram");
+        }
+    } catch (e) {
+        console.error("Error streaming telegram photo:", e.message);
+        res.status(500).send("Error streaming photo");
+    }
+});
+
 app.delete('/api/languages/:code', requireAuth, async (req, res) => {
     const success = await db.deleteLanguage(req.params.code);
     if (success) {

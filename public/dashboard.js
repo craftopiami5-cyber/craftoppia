@@ -161,9 +161,12 @@ function renderTable(regs, totalCount) {
           </div>
         `;
       } else {
+        const proxyUrl = `/api/admin/photo/${reg.receipt_image_url}`;
         receiptHtml += `
           <div style="margin-top: 6px;">
-            <div style="width: 48px; height: 48px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); border-radius: 6px; border: 1px dashed var(--card-border); font-size:10px; text-align:center; color: var(--text-muted); cursor: help;" title="Image is available in your Telegram Admin channel">In Telegram</div>
+            <a href="${proxyUrl}" target="_blank">
+              <img src="${proxyUrl}" alt="Receipt" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--card-border); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+            </a>
           </div>
         `;
       }
