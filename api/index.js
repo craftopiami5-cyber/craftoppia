@@ -1655,7 +1655,15 @@ app.post('/api/bot', async (req, res) => {
                 
                 await db.upsertRegistration(chatId, { step: buildStep(lang, currentStep) });
                 
-                if (currentStep.includes("completed") || ["approved", "pending"].includes(status)) {
+                if (status === "declined") {
+                    await db.upsertRegistration(chatId, { step: buildStep(lang, "awaiting_name"), status: "started" });
+                    await sendTelegramRequest("sendMessage", {
+                        chat_id: chatId,
+                        text: getMsg(lang, "ask_name"),
+                        parse_mode: "Markdown",
+                        reply_markup: getMenuKeyboard(lang)
+                    });
+                } else if (currentStep.includes("completed") || ["approved", "pending"].includes(status)) {
                     await sendTelegramRequest("sendMessage", {
                         chat_id: chatId,
                         text: getMsg(lang, "already_registered"),

@@ -162,8 +162,7 @@ async function getRegistrationById(regId) {
 async function upsertRegistration(chatId, data) {
     const latest = await getRegistration(chatId);
     
-    const stepVal = latest && latest.step ? latest.step : "";
-    if (latest && !stepVal.includes("completed")) {
+    if (latest) {
         const regId = latest.id;
         const url = `${SUPABASE_URL}/rest/v1/registrations?id=eq.${regId}`;
         try {
