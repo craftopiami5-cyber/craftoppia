@@ -435,6 +435,30 @@ function formatInviteLinksForUser(inviteLinkStr, lang) {
     return text;
 }
 
+async function removeUserFromChannel(chatId) {
+    try {
+        const settings = await db.getPaymentSettings();
+        const channelId = settings.telegram_channel_id || TELEGRAM_CHANNEL_ID || process.env.TELEGRAM_CHANNEL_ID || "-1003789578749";
+        console.log(`[Kick] Removing user ${chatId} from channel ${channelId}`);
+        const banRes = await sendTelegramRequest("banChatMember", {
+            chat_id: channelId,
+            user_id: chatId
+        });
+        if (banRes && banRes.ok) {
+            console.log(`[Kick] User ${chatId} kicked from channel ${channelId} successfully. Now unbanning...`);
+            await sendTelegramRequest("unbanChatMember", {
+                chat_id: channelId,
+                user_id: chatId,
+                only_if_banned: true
+            });
+        } else {
+            console.error(`[Kick] Failed to kick user ${chatId} from channel:`, banRes ? banRes.description : "Unknown error");
+        }
+    } catch (e) {
+        console.error(`[Kick] Exception in removeUserFromChannel for user ${chatId}:`, e.message);
+    }
+}
+
 
 function buildStep(lang, step) {
     return `${lang}|${step}`;
@@ -684,9 +708,9 @@ async function sendNextQuizQuestion(chatId) {
                     filename: 'Certificate.pdf',
                     contentType: 'application/pdf'
                 });
-                
                 try {
                     await axios.post(`${TELEGRAM_API_URL}/sendDocument`, form, { headers: form.getHeaders() });
+                    await removeUserFromChannel(chatId);
                     return;
                 } catch (sendErr) {
                     console.error("Error sending auto-generated certificate document:", sendErr.message);
@@ -1745,6 +1769,9 @@ app.post('/api/bot', async (req, res) => {
                 
                 await db.upsertRegistration(chatId, { step: buildStep(lang, currentStep) });
                 
+                const prog = await db.getUserQuizProgress(chatId);
+                const isCompleted = prog && prog.is_completed;
+                
                 if (status === "declined") {
                     await db.upsertRegistration(chatId, { step: buildStep(lang, "awaiting_name"), status: "started" });
                     await sendTelegramRequest("sendMessage", {
@@ -1752,6 +1779,35 @@ app.post('/api/bot', async (req, res) => {
                         text: getMsg(lang, "ask_name_am"),
                         parse_mode: "Markdown",
                         reply_markup: getMenuKeyboard(lang)
+                    });
+                } else if (status === "approved" && isCompleted) {
+                    const name = reg.name || "Student";
+                    const phone = reg.phone || "";
+                    await db.insertNewRegistration(chatId, {
+                        name,
+                        phone,
+                        step: buildStep(lang, "awaiting_payment_method"),
+                        status: "started"
+                    });
+                    await db.upsertUserQuizProgress(chatId, {
+                        is_completed: false,
+                        current_day: 1,
+                        current_question_index: 0,
+                        last_completed_at: null
+                    });
+                    
+                    const msg = `${getMsg(lang, "phone_saved")}\n\n${getMsg(lang, "ask_payment_method")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }],
+                            [{ text: getMsg(lang, "btn_abyssinia"), callback_data: "pay_abyssinia" }]
+                        ]
+                    };
+                    await sendTelegramRequest("sendMessage", {
+                        chat_id: chatId,
+                        text: msg,
+                        parse_mode: "Markdown",
+                        reply_markup: kb
                     });
                 } else if (currentStep.includes("completed") || ["approved", "pending"].includes(status)) {
                     await sendTelegramRequest("sendMessage", {
@@ -2140,6 +2196,7 @@ app.post('/api/bot', async (req, res) => {
                 
                 const url = `${TELEGRAM_API_URL}/sendDocument`;
                 await axios.post(url, form, { headers: form.getHeaders() });
+                await removeUserFromChannel(chatId);
             } catch (e) {
                 console.error("Error generating/sending PDF:", e.message);
                 await sendTelegramRequest("sendMessage", {

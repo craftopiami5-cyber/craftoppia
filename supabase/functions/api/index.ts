@@ -199,6 +199,31 @@ function formatInviteLinksForUser(inviteLinkStr: string, lang: string): string {
   return text;
 }
 
+async function removeUserFromChannel(chatId: number) {
+  try {
+    const { data: settings } = await supabase.from("admins").select("verification_code").eq("username", "payment_settings").maybeSingle();
+    const sDict = settings && settings.verification_code ? JSON.parse(settings.verification_code) : {};
+    const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1003789578749";
+    console.log(`[Kick] Removing user ${chatId} from channel ${channelId}`);
+    const banRes = await sendTelegramRequest("banChatMember", {
+      chat_id: channelId,
+      user_id: chatId
+    });
+    if (banRes && banRes.ok) {
+      console.log(`[Kick] User ${chatId} kicked from channel ${channelId} successfully. Now unbanning...`);
+      await sendTelegramRequest("unbanChatMember", {
+        chat_id: channelId,
+        user_id: chatId,
+        only_if_banned: true
+      });
+    } else {
+      console.error(`[Kick] Failed to kick user ${chatId} from channel:`, banRes ? banRes.description : "Unknown error");
+    }
+  } catch (e: any) {
+    console.error(`[Kick] Exception in removeUserFromChannel for user ${chatId}:`, e.message);
+  }
+}
+
 function getMenuKeyboard(lang = "en") {
   return {
     keyboard: [
@@ -315,6 +340,7 @@ async function sendNextQuizQuestion(chatId: number) {
             method: "POST",
             body: form
           });
+          await removeUserFromChannel(chatId);
           return;
         } catch (sendErr: any) {
           console.error("Error sending auto-generated certificate document:", sendErr.message);
@@ -1110,6 +1136,7 @@ async function handleRequest(req: Request): Promise<Response> {
             method: "POST",
             body: form
           });
+          await removeUserFromChannel(chatId);
           return new Response("OK", { headers: corsHeaders });
         }
       }
@@ -1245,7 +1272,10 @@ async function handleRequest(req: Request): Promise<Response> {
         if (reg) {
           const status = reg.status;
           if (isMenuCommand(text, "menu_submit_receipt") || text === "/submit") {
-            if (["approved", "declined"].includes(status)) {
+            const { data: prog } = await supabase.from("user_quiz_progress").select("is_completed").eq("chat_id", chatId).maybeSingle();
+            const isCompleted = prog && prog.is_completed;
+
+            if (status === "declined" || (status === "approved" && isCompleted)) {
               await supabase.from("registrations").insert({
                 chat_id: chatId,
                 name: reg.name,
@@ -1253,6 +1283,13 @@ async function handleRequest(req: Request): Promise<Response> {
                 step: buildStep(lang, "awaiting_payment_method"),
                 status: "started"
               });
+              await supabase.from("user_quiz_progress").update({
+                is_completed: false,
+                current_day: 1,
+                current_question_index: 0,
+                last_completed_at: null
+              }).eq("chat_id", chatId);
+
               const msg = getMsg(lang, "ready_new_receipt");
               const kb = {
                 inline_keyboard: [
@@ -1261,6 +1298,9 @@ async function handleRequest(req: Request): Promise<Response> {
                 ]
               };
               await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, reply_markup: kb });
+              return new Response("OK", { headers: corsHeaders });
+            } else if (status === "approved" && !isCompleted) {
+              await sendTelegramRequest("sendMessage", { chat_id: chatId, text: getMsg(lang, "already_registered"), reply_markup: getMenuKeyboard(lang) });
               return new Response("OK", { headers: corsHeaders });
             } else if (status === "pending") {
               await sendTelegramRequest("sendMessage", { chat_id: chatId, text: getMsg(lang, "already_pending") });

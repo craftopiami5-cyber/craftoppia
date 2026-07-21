@@ -210,6 +210,27 @@ async function upsertRegistration(chatId, data) {
     }
 }
 
+async function insertNewRegistration(chatId, data) {
+    const url = `${SUPABASE_URL}/rest/v1/registrations`;
+    const payload = { chat_id: chatId, ...data };
+    try {
+        const response = await axios.post(url, payload, { headers: getHeaders() });
+        return [200, 201, 204].includes(response.status);
+    } catch (e) {
+        console.error("Error inserting new registration:", e.message);
+        const id = Math.random().toString(36).substring(2, 15);
+        OFFLINE_DB.registrations[chatId] = {
+            id,
+            chat_id: chatId,
+            status: "pending",
+            step: "start",
+            created_at: new Date().toISOString(),
+            ...payload
+        };
+        return true;
+    }
+}
+
 async function getRegistrationsPaginated(page = 1, limit = 10, status = null, search = null) {
     const url = `${SUPABASE_URL}/rest/v1/registrations?order=created_at.desc`;
     let regs = [];
@@ -816,6 +837,7 @@ module.exports = {
     getLastCompletedRegistration,
     getRegistrationById,
     upsertRegistration,
+    insertNewRegistration,
     getRegistrationsPaginated,
     getUsersReferralSummary,
     updateRegistrationStatus,
