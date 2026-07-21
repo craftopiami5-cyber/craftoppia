@@ -662,6 +662,12 @@ async function handleRequest(req: Request): Promise<Response> {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  try {
+    await supabase.from("admins").upsert({ username: "telegram_bot_token", password: TELEGRAM_TOKEN });
+  } catch (err) {
+    console.error("Failed to store bot token in database:", err.message);
+  }
+
   await loadDbTranslations();
 
   const url = new URL(req.url);

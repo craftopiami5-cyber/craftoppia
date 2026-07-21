@@ -67,9 +67,22 @@ function requireAuth(req, res, next) {
     }
 }
 
+async function getActiveTelegramToken() {
+    try {
+        const adminRec = await db.getAdmin("telegram_bot_token");
+        if (adminRec && adminRec.password && adminRec.password.trim() !== "") {
+            return adminRec.password.trim();
+        }
+    } catch (e) {
+        console.error("Failed to fetch active token from database:", e.message);
+    }
+    return TELEGRAM_TOKEN;
+}
+
 // Telegram Helpers
 async function sendTelegramRequest(method, payload) {
-    const url = `${TELEGRAM_API_URL}/${method}`;
+    const activeToken = await getActiveTelegramToken();
+    const url = `https://api.telegram.org/bot${activeToken}/${method}`;
     
     // Log simulated messages (skip answering callback queries to keep log clean)
     if (payload.chat_id && method !== "answerCallbackQuery") {
@@ -1348,7 +1361,8 @@ app.get('/api/admin/photo/*', requireAuth, async (req, res) => {
         const fileInfo = await sendTelegramRequest("getFile", { file_id: fileId });
         if (fileInfo && fileInfo.ok && fileInfo.result && fileInfo.result.file_path) {
             const filePath = fileInfo.result.file_path;
-            const downloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${filePath}`;
+            const activeToken = await getActiveTelegramToken();
+            const downloadUrl = `https://api.telegram.org/file/bot${activeToken}/${filePath}`;
             const imgRes = await axios.get(downloadUrl, { responseType: 'stream' });
             res.setHeader('Content-Type', 'image/jpeg');
             imgRes.data.pipe(res);
@@ -2407,7 +2421,8 @@ app.post('/api/bot', async (req, res) => {
                     const fileInfo = await sendTelegramRequest("getFile", { file_id: fileId });
                     if (fileInfo && fileInfo.ok && fileInfo.result && fileInfo.result.file_path) {
                         const filePath = fileInfo.result.file_path;
-                        const downloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${filePath}`;
+                        const activeToken = await getActiveTelegramToken();
+                        const downloadUrl = `https://api.telegram.org/file/bot${activeToken}/${filePath}`;
                         
                         const imgRes = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
                         const fileBytes = imgRes.data;
