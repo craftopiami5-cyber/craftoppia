@@ -150,7 +150,8 @@ function renderTable(regs, totalCount) {
       `;
     }
     
-    let receiptHtml = `<code>${escapeHtml(reg.receipt_number || '-')}</code>`;
+    const payMethod = reg.payment_method ? reg.payment_method : 'Unknown';
+    let receiptHtml = `<span style="font-size: 11px; background: var(--input-bg); border: 1px solid var(--card-border); padding: 2px 6px; border-radius: 4px; font-weight: 600; color: var(--text-muted); display: inline-block; margin-bottom: 4px;">${escapeHtml(payMethod)}</span><br><code>${escapeHtml(reg.receipt_number || '-')}</code>`;
     if (reg.receipt_image_url) {
       if (reg.receipt_image_url.startsWith('http')) {
         receiptHtml += `
@@ -321,6 +322,8 @@ async function loadPaymentSettings() {
       document.getElementById('setTelebirrNumber').value = data.telebirr_number || '';
       document.getElementById('setCbeName').value = data.cbe_name || '';
       document.getElementById('setCbeNumber').value = data.cbe_number || '';
+      document.getElementById('setAbyssiniaName').value = data.abyssinia_name || '';
+      document.getElementById('setAbyssiniaNumber').value = data.abyssinia_number || '';
       
       document.getElementById('setCertProgramEn').value = data.cert_program_en || 'Hand Craft & Art';
       document.getElementById('setCertProgramAm').value = data.cert_program_am || 'የእጅ ሥራና ጥበብ ስልጠና';
@@ -366,6 +369,8 @@ document.getElementById('paymentSettingsForm').addEventListener('submit', async 
     telebirr_number: document.getElementById('setTelebirrNumber').value,
     cbe_name: document.getElementById('setCbeName').value,
     cbe_number: document.getElementById('setCbeNumber').value,
+    abyssinia_name: document.getElementById('setAbyssiniaName').value,
+    abyssinia_number: document.getElementById('setAbyssiniaNumber').value,
     cert_program_en: document.getElementById('setCertProgramEn').value,
     cert_program_am: document.getElementById('setCertProgramAm').value,
     cert_duration_en: document.getElementById('setCertDurationEn').value,

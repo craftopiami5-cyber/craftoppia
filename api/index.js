@@ -2553,7 +2553,7 @@ app.post('/api/bot', async (req, res) => {
         }
 
             
-        const paymentMethod = currentStep.includes("telebirr") ? "Telebirr" : (currentStep.includes("cbe") ? "CBE" : "Unknown");
+        const paymentMethod = currentStep.includes("telebirr") ? "Telebirr" : (currentStep.includes("cbe") ? "CBE" : (currentStep.includes("abyssinia") ? "Abyssinia Bank" : "Unknown"));
         await db.upsertRegistration(chatId, {
             receipt_number: receiptNum,
             receipt_image_url: receiptImg,

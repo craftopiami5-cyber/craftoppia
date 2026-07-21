@@ -1344,7 +1344,7 @@ async function handleRequest(req: Request): Promise<Response> {
           return new Response("OK", { headers: corsHeaders });
         }
 
-        const paymentMethod = currentStep.includes("telebirr") ? "Telebirr" : (currentStep.includes("cbe") ? "CBE" : "Unknown");
+        const paymentMethod = currentStep.includes("telebirr") ? "Telebirr" : (currentStep.includes("cbe") ? "CBE" : (currentStep.includes("abyssinia") ? "Abyssinia Bank" : "Unknown"));
         await supabase.from("registrations").update({
           receipt_number: receiptNum,
           receipt_image_url: receiptImg,

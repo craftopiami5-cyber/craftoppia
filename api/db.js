@@ -532,6 +532,8 @@ async function getPaymentSettings() {
         telebirr_number: "0911223344",
         cbe_name: "Craftopia Hand Craft",
         cbe_number: "1000123456789",
+        abyssinia_name: "Craftopia BoA",
+        abyssinia_number: "987654321",
         cert_program_en: "Hand Craft & Art",
         cert_program_am: "የእጅ ሥራና ጥበብ ስልጠና",
         cert_duration_en: "4 Weeks",
