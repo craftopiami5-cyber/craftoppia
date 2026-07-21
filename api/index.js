@@ -1280,9 +1280,21 @@ app.post('/api/admin/send_quiz', requireAuth, async (req, res) => {
     const [regs] = await db.getRegistrationsPaginated(1, 1000, "approved");
     for (const r of regs) {
         const chatId = r.chat_id;
-        const prog = await db.getUserQuizProgress(chatId);
-        if (prog && !prog.is_completed) {
-            await sendNextQuizQuestion(chatId);
+        try {
+            const prog = await db.getUserQuizProgress(chatId);
+            if (prog && !prog.is_completed) {
+                const day = prog.current_day || 1;
+                const qIndex = prog.current_question_index || 0;
+                const qs = await db.getQuestionsByDay(day);
+                
+                if (qIndex >= qs.length && qs.length > 0) {
+                    // Manual trigger overrides the calendar day check!
+                    await db.upsertUserQuizProgress(chatId, { current_day: day + 1, current_question_index: 0 });
+                }
+                await sendNextQuizQuestion(chatId);
+            }
+        } catch (err) {
+            console.error(`Error processing quiz manually for ${chatId}:`, err.message);
         }
     }
     return res.json({ success: true });
