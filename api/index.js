@@ -526,15 +526,19 @@ async function generateCertificatePdf(name, regDate, finishDate, name2) {
     html = html.replace('ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም', `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${finishDate}</div> ዓ.ም`);
     html = html.replace('DATE: <div class="fill-blank-line" style="width: 150px;"></div>', `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`);
     
-    if (signatureBase64) {
-        html = html.replace('SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>', `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`);
+    let signatureHtml = 'SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>';
+    if (signatureBase64 || sealBase64) {
+        let insideHtml = "";
+        if (signatureBase64) {
+            insideHtml += `<img src="${signatureBase64}" style="max-height: 45px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); z-index: 1;">`;
+        }
+        if (sealBase64) {
+            insideHtml += `<img src="${sealBase64}" style="position: absolute; max-height: 105px; max-width: 105px; object-fit: contain; bottom: -28px; left: 55%; transform: translateX(-50%); z-index: 2; opacity: 0.82; pointer-events: none;">`;
+        }
+        signatureHtml = `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;">${insideHtml}</div>`;
     }
-    
-    if (sealBase64) {
-        html = html.replace('<!-- SEAL_PLACEHOLDER -->', `<div class="seal-container" style="margin-right: 20px; display: flex; align-items: center;"><img src="${sealBase64}" style="max-height: 75px; max-width: 75px; object-fit: contain;"></div>`);
-    } else {
-        html = html.replace('<!-- SEAL_PLACEHOLDER -->', '');
-    }
+    html = html.replace('SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>', signatureHtml);
+    html = html.replace('<!-- SEAL_PLACEHOLDER -->', '');
 
     try {
         const FormData = require('form-data');
@@ -2789,18 +2793,19 @@ app.get('/api/certificate', async (req, res) => {
         `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`
     );
     
-    if (signatureBase64) {
-        html = html.replace(
-            'SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>',
-            `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;"><img src="${signatureBase64}" style="max-height: 40px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);"></div>`
-        );
+    let signatureHtml = 'SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>';
+    if (signatureBase64 || sealBase64) {
+        let insideHtml = "";
+        if (signatureBase64) {
+            insideHtml += `<img src="${signatureBase64}" style="max-height: 45px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); z-index: 1;">`;
+        }
+        if (sealBase64) {
+            insideHtml += `<img src="${sealBase64}" style="position: absolute; max-height: 105px; max-width: 105px; object-fit: contain; bottom: -28px; left: 55%; transform: translateX(-50%); z-index: 2; opacity: 0.82; pointer-events: none;">`;
+        }
+        signatureHtml = `SIGNED: <div class="fill-blank-line" style="width: 190px; position: relative; text-align: center; height: 35px !important; vertical-align: bottom !important;">${insideHtml}</div>`;
     }
-    
-    if (sealBase64) {
-        html = html.replace('<!-- SEAL_PLACEHOLDER -->', `<div class="seal-container" style="margin-right: 20px; display: flex; align-items: center;"><img src="${sealBase64}" style="max-height: 75px; max-width: 75px; object-fit: contain;"></div>`);
-    } else {
-        html = html.replace('<!-- SEAL_PLACEHOLDER -->', '');
-    }
+    html = html.replace('SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>', signatureHtml);
+    html = html.replace('<!-- SEAL_PLACEHOLDER -->', '');
 
     const script = `
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
