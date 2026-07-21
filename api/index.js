@@ -24,7 +24,7 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-craftopia-token-key-12345!";
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co").replace(/\/$/, "");
-const SUPABASE_KEY = (process.env.SUPABASE_KEY && process.env.SUPABASE_KEY !== "sb_publishable_GhwTyM1ilJr0M2VbusxDPQ_5wA9LycM" ? process.env.SUPABASE_KEY : "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ");
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || (process.env.SUPABASE_KEY && process.env.SUPABASE_KEY !== "sb_publishable_GhwTyM1ilJr0M2VbusxDPQ_5wA9LycM" ? process.env.SUPABASE_KEY : "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ");
 
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 let BOT_USERNAME = null;
@@ -2410,7 +2410,7 @@ app.post('/api/bot', async (req, res) => {
                         const downloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${filePath}`;
                         
                         const imgRes = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
-                        const fileBytes = Buffer.from(imgRes.data, 'binary');
+                        const fileBytes = imgRes.data;
                         const fileName = `${chatId}_${Math.floor(Date.now() / 1000)}.jpg`;
                         const storageUrl = `${SUPABASE_URL}/storage/v1/object/receipts/${fileName}`;
                         
