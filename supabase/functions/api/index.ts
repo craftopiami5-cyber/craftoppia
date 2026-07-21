@@ -210,14 +210,9 @@ async function removeUserFromChannel(chatId: number) {
       user_id: chatId
     });
     if (banRes && banRes.ok) {
-      console.log(`[Kick] User ${chatId} kicked from channel ${channelId} successfully. Now unbanning...`);
-      await sendTelegramRequest("unbanChatMember", {
-        chat_id: channelId,
-        user_id: chatId,
-        only_if_banned: true
-      });
+      console.log(`[Kick] User ${chatId} successfully banned from channel ${channelId}.`);
     } else {
-      console.error(`[Kick] Failed to kick user ${chatId} from channel:`, banRes ? banRes.description : "Unknown error");
+      console.error(`[Kick] Failed to ban user ${chatId} from channel:`, banRes ? banRes.description : "Unknown error");
     }
   } catch (e: any) {
     console.error(`[Kick] Exception in removeUserFromChannel for user ${chatId}:`, e.message);
@@ -665,6 +660,17 @@ async function checkAndApplyReferralReward(referrerChatId: number) {
       const sDict = settings && settings.verification_code ? JSON.parse(settings.verification_code) : {};
       const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1003789578749";
 
+      // Unban user first in case they were previously banned/expired
+      try {
+        await sendTelegramRequest("unbanChatMember", {
+          chat_id: channelId,
+          user_id: referrerReg.chat_id,
+          only_if_banned: true
+        });
+      } catch (unbanErr: any) {
+        console.error(`[Unban] Failed to unban referrer ${referrerReg.chat_id}:`, unbanErr.message);
+      }
+
       // Generate main channel invite link dynamically
       const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
         chat_id: channelId,
@@ -836,6 +842,17 @@ async function handleRequest(req: Request): Promise<Response> {
             const { data: settings } = await supabase.from("admins").select("verification_code").eq("username", "payment_settings").maybeSingle();
             const sDict = settings && settings.verification_code ? JSON.parse(settings.verification_code) : {};
             const channelId = sDict.telegram_channel_id || TELEGRAM_CHANNEL_ID || "-1003789578749";
+
+            // Unban user first in case they were previously banned/expired
+            try {
+              await sendTelegramRequest("unbanChatMember", {
+                chat_id: channelId,
+                user_id: reg.chat_id,
+                only_if_banned: true
+              });
+            } catch (unbanErr: any) {
+              console.error(`[Unban] Failed to unban user ${reg.chat_id}:`, unbanErr.message);
+            }
 
             const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
               chat_id: channelId,

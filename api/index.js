@@ -128,7 +128,7 @@ async function checkAndApplyReferralReward(referrerChatId) {
             console.log(`[Referral Reward] User ${referrerChatId} has ${approvedReferrals.length} approved referrals. Auto-approving!`);
             
             const [lang] = getLangAndStep(referrerReg);
-            const inviteLink = await generateApprovedInviteLinks(referrerReg.name, lang);
+            const inviteLink = await generateApprovedInviteLinks(referrerReg.chat_id, referrerReg.name, lang);
             await db.updateRegistrationStatus(referrerReg.id, "approved", inviteLink);
             
             const msg = getMsg(lang, "referral_reward_msg")
@@ -364,7 +364,7 @@ function getDefaultStudentName(lang) {
     return "Student";
 }
 
-async function generateApprovedInviteLinks(regName, lang = "en") {
+async function generateApprovedInviteLinks(chatId, regName, lang = "en") {
     let settings;
     try {
         settings = await db.getPaymentSettings();
@@ -376,6 +376,19 @@ async function generateApprovedInviteLinks(regName, lang = "en") {
     const channelId = settings.telegram_channel_id || TELEGRAM_CHANNEL_ID || process.env.TELEGRAM_CHANNEL_ID || "-1003789578749";
     const durationDays = parseInt(settings.access_duration_days) || 30;
     const expireDate = Math.floor(Date.now() / 1000) + Math.max(1, durationDays) * 24 * 3600;
+
+    // Unban user first in case they were previously banned/expired
+    if (chatId) {
+        try {
+            await sendTelegramRequest("unbanChatMember", {
+                chat_id: channelId,
+                user_id: chatId,
+                only_if_banned: true
+            });
+        } catch (unbanErr) {
+            console.error(`[Unban] Failed to unban user ${chatId}:`, unbanErr.message);
+        }
+    }
 
     // Generate main channel invite link dynamically
     const inviteRes1 = await sendTelegramRequest("createChatInviteLink", {
@@ -445,14 +458,9 @@ async function removeUserFromChannel(chatId) {
             user_id: chatId
         });
         if (banRes && banRes.ok) {
-            console.log(`[Kick] User ${chatId} kicked from channel ${channelId} successfully. Now unbanning...`);
-            await sendTelegramRequest("unbanChatMember", {
-                chat_id: channelId,
-                user_id: chatId,
-                only_if_banned: true
-            });
+            console.log(`[Kick] User ${chatId} successfully banned from channel ${channelId}.`);
         } else {
-            console.error(`[Kick] Failed to kick user ${chatId} from channel:`, banRes ? banRes.description : "Unknown error");
+            console.error(`[Kick] Failed to ban user ${chatId} from channel:`, banRes ? banRes.description : "Unknown error");
         }
     } catch (e) {
         console.error(`[Kick] Exception in removeUserFromChannel for user ${chatId}:`, e.message);
@@ -1318,7 +1326,7 @@ app.post('/api/approve', requireAuth, async (req, res) => {
         
     try {
         const [lang] = getLangAndStep(reg);
-        const inviteLink = await generateApprovedInviteLinks(reg.name, lang);
+        const inviteLink = await generateApprovedInviteLinks(reg.chat_id, reg.name, lang);
         await db.updateRegistrationStatus(id, "approved", inviteLink);
         
         // Trigger referral reward check
@@ -1933,7 +1941,7 @@ app.post('/api/bot', async (req, res) => {
             if (action === "approve") {
                 try {
                     const [lang] = getLangAndStep(reg);
-                    const inviteLink = await generateApprovedInviteLinks(reg.name, lang);
+                    const inviteLink = await generateApprovedInviteLinks(reg.chat_id, reg.name, lang);
                     await db.updateRegistrationStatus(regId, "approved", inviteLink);
                     
                     // Trigger referral reward check
