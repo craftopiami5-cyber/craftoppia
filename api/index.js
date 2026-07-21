@@ -1554,17 +1554,6 @@ async function kickUserFromChannel(chatId) {
             });
         }
         
-        // Kick from private group
-        console.log(`[Expiration] Kicking user ${chatId} from private group ${secondGroupId}...`);
-        await sendTelegramRequest("banChatMember", {
-            chat_id: secondGroupId,
-            user_id: chatId
-        });
-        await sendTelegramRequest("unbanChatMember", {
-            chat_id: secondGroupId,
-            user_id: chatId,
-            only_if_banned: true
-        });
     } catch (e) {
         console.error("Error kicking user from channel/group:", e.message);
     }
@@ -2119,7 +2108,6 @@ app.post('/api/bot', async (req, res) => {
     }
 
     const reg = await db.getRegistration(chatId);
-    /* Lifetime access: Disable expiration check
     if (reg && reg.status === "approved" && reg.expires_at) {
         const now = new Date();
         const expiry = new Date(reg.expires_at);
@@ -2133,7 +2121,6 @@ app.post('/api/bot', async (req, res) => {
             return res.send("OK");
         }
     }
-    */
     const [lang, currentStep] = getLangAndStep(reg);
 
     // Common menu commands
