@@ -17,7 +17,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Multer is lazy-loaded in the route that needs it
 const BASE_DIR = path.join(__dirname, '..');
-const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8864741035:AAF5BMri8NIWEhJfwUq7DGmkiwQ86zB5o8o";
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || "8864741035:AAF5BMri8NIWEhJfwUq7DGmkiwQ86zB5o8o";
 const TELEGRAM_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
