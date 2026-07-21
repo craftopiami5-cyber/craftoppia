@@ -267,7 +267,7 @@ async function sendNextQuizQuestion(chatId: number) {
       if (regDateStr) {
         try { regDate = regDateStr.split("T")[0]; } catch (_e) {}
       }
-      const finishDate = new Date().toISOString().split("T")[0];
+      const finishDate = new Date(new Date().getTime() + 3 * 3600000).toISOString().split("T")[0];
       
       let pdfBytes = null;
       try {
@@ -431,13 +431,9 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
 
 
 
-    // ── SECTION 2: Header and Logo ─────────────────────────────────────────
-    // 1. Institution Name (Amharic) - Located above the logo
-    doc.fillColor(forestGreen).font(ethFont(true)).fontSize(31)
-       .text("ክራፍቶፒያ የእደጥበብ ሙያዎች ማሰልጠኛ ተቋም", 0, 35, { align: "center", width: 841.89 });
-
-    // 2. Logo Emblem (Centred at 420.94)
-    const logoX = 420.94, logoY = 90;
+    // ── SECTION 2: Header and Logo (Side-by-Side) ──────────────────────────
+    // Logo Emblem (Centred at 110, 95)
+    const logoX = 110, logoY = 95;
     // Spark above green emblem
     doc.circle(logoX, logoY - 30, 4.5).fillColor(pureGold).fill();
     // Forest Green stylized glyph
@@ -445,17 +441,21 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     doc.circle(logoX, logoY, 13.5).fillColor("#ffffff").fill();
     doc.circle(logoX, logoY, 6).fillColor(forestGreen).fill();
 
-    // 3. Institution Name (English) - Located below the logo
+    // 1. Institution Name (Amharic)
+    doc.fillColor(forestGreen).font(ethFont(true)).fontSize(31)
+       .text("ክራፍቶፒያ የእደጥበብ ሙያዎች ማሰልጠኛ ተቋም", 150, 30, { align: "center", width: 630 });
+
+    // 3. Institution Name (English)
     doc.fillColor(forestGreen).font(latFont(true)).fontSize(25)
-       .text("CRAFTOPIA HANDCRAFTS SCHOOL", 0, 115, { align: "center", width: 841.89 });
+       .text("CRAFTOPIA HANDCRAFTS SCHOOL", 150, 65, { align: "center", width: 630 });
 
     // 4. Certificate Title (Amharic)
     doc.fillColor(forestGreen).font(ethFont(true)).fontSize(24)
-       .text("የአጭር ጊዜ ስልጠና የምስክር ወረቀት", 0, 143, { align: "center", width: 841.89 });
+       .text("የአጭር ጊዜ ስልጠና የምስክር ወረቀት", 150, 95, { align: "center", width: 630 });
 
     // 5. Certificate Title (English)
     doc.fillColor(forestGreen).font(latFont(true)).fontSize(21)
-       .text("CERTIFICATE OF SHORT TERM TRAINING", 0, 169, { align: "center", width: 841.89 });
+       .text("CERTIFICATE OF SHORT TERM TRAINING", 150, 125, { align: "center", width: 630 });
 
     // ── Divider Lines (Double vertical lines in gold) ──────────────────────
     doc.lineWidth(1).strokeColor(antiqueGold);
@@ -489,9 +489,9 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     doc.fillColor(forestGreen).font(autoFont(programAm, true)).fontSize(11)
        .text(programAm, lx + 105, 279, { width: lw - 105, align: "center" });
 
-    // Line 4: ሙያ ስልጠና ተከታትሎ(ላ) በስኬት ላጠናቀቀ(ች) ይህ የምስክር ወረቀት ተሰጥቶታል(ታለች)፡፡
+    // Line 4: ሙያ ስልጠና ተከታትለው ስላጠናቀቁ ይህ የምስክር ወረቀት ተሰጥቷቸዋል፡፡
     doc.fillColor(forestGreen).font(ethFont(false)).fontSize(11)
-       .text("ሙያ ስልጠና ተከታትሎ(ላ) በስኬት ላጠናቀቀ(ች) ይህ የምስክር ወረቀት ተሰጥቶታል(ታለች)፡፡", lx, 316, { width: lw, align: "justify", lineGap: 6 });
+       .text("ሙያ ስልጠና ተከታትለው ስላጠናቀቁ ይህ የምስክር ወረቀት ተሰጥቷቸዋል፡፡", lx, 316, { width: lw, align: "justify", lineGap: 6 });
 
     // ── SECTION 4: Main Body Text (Right-Side Column) ─────────────────────
     const rx = 455, rw = 320;
@@ -883,7 +883,10 @@ async function handleRequest(req: Request): Promise<Response> {
               } else if (currentStep === "awaiting_payment_method") {
                 const msg = getMsg(lang, "ask_payment_method");
                 const kb = {
-                  inline_keyboard: [[{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }]]
+                  inline_keyboard: [
+                    [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }],
+                    [{ text: getMsg(lang, "btn_abyssinia"), callback_data: "pay_abyssinia" }]
+                  ]
                 };
                 await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, reply_markup: kb });
               } else if (currentStep.startsWith("awaiting_receipt")) {
@@ -893,6 +896,8 @@ async function handleRequest(req: Request): Promise<Response> {
                 let msg;
                 if (currentStep.includes("telebirr")) {
                   msg = getMsg(lang, "telebirr_payment_instructions").replace("{amount}", amount).replace("{acc_name}", sDict.telebirr_name || "").replace("{acc_num}", sDict.telebirr_number || "");
+                } else if (currentStep.includes("abyssinia")) {
+                  msg = getMsg(lang, "abyssinia_payment_instructions").replace("{amount}", amount).replace("{acc_name}", sDict.abyssinia_name || "").replace("{acc_num}", sDict.abyssinia_number || "");
                 } else {
                   msg = getMsg(lang, "cbe_payment_instructions").replace("{amount}", amount).replace("{acc_name}", sDict.cbe_name || "").replace("{acc_num}", sDict.cbe_number || "");
                 }
@@ -972,7 +977,7 @@ async function handleRequest(req: Request): Promise<Response> {
           return new Response("OK", { headers: corsHeaders });
         }
 
-        if (["pay_telebirr", "pay_cbe"].includes(callbackData)) {
+        if (["pay_telebirr", "pay_cbe", "pay_abyssinia"].includes(callbackData)) {
           const chatId = callbackQuery.message.chat.id;
           await sendTelegramRequest("answerCallbackQuery", { callback_query_id: callbackQueryId });
 
@@ -993,6 +998,9 @@ async function handleRequest(req: Request): Promise<Response> {
             if (callbackData === "pay_telebirr") {
               msg = getMsg(lang, "telebirr_payment_instructions").replace("{amount}", amount).replace("{acc_name}", sDict.telebirr_name || "").replace("{acc_num}", sDict.telebirr_number || "");
               await supabase.from("registrations").update({ step: buildStep(lang, "awaiting_receipt_telebirr") }).eq("id", reg.id);
+            } else if (callbackData === "pay_abyssinia") {
+              msg = getMsg(lang, "abyssinia_payment_instructions").replace("{amount}", amount).replace("{acc_name}", sDict.abyssinia_name || "").replace("{acc_num}", sDict.abyssinia_number || "");
+              await supabase.from("registrations").update({ step: buildStep(lang, "awaiting_receipt_abyssinia") }).eq("id", reg.id);
             } else {
               msg = getMsg(lang, "cbe_payment_instructions").replace("{amount}", amount).replace("{acc_name}", sDict.cbe_name || "").replace("{acc_num}", sDict.cbe_number || "");
               await supabase.from("registrations").update({ step: buildStep(lang, "awaiting_receipt_cbe") }).eq("id", reg.id);
@@ -1022,7 +1030,7 @@ async function handleRequest(req: Request): Promise<Response> {
           if (regDateStr) {
             regDate = regDateStr.split("T")[0];
           }
-          const finishDate = new Date().toISOString().split("T")[0];
+          const finishDate = new Date(new Date().getTime() + 3 * 3600000).toISOString().split("T")[0];
 
           const pdfBytes = await generateCertificatePdf(name, regDate, finishDate, name2);
 
@@ -1183,7 +1191,10 @@ async function handleRequest(req: Request): Promise<Response> {
               });
               const msg = getMsg(lang, "ready_new_receipt");
               const kb = {
-                inline_keyboard: [[{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }]]
+                inline_keyboard: [
+                  [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }],
+                  [{ text: getMsg(lang, "btn_abyssinia"), callback_data: "pay_abyssinia" }]
+                ]
               };
               await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, reply_markup: kb });
               return new Response("OK", { headers: corsHeaders });
@@ -1272,7 +1283,10 @@ async function handleRequest(req: Request): Promise<Response> {
         await supabase.from("registrations").update({ phone: phone, step: buildStep(lang, "awaiting_payment_method") }).eq("id", reg.id);
         const msg = `${getMsg(lang, "phone_saved")}\n\n${getMsg(lang, "ask_payment_method")}`;
         const kb = {
-          inline_keyboard: [[{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }]]
+          inline_keyboard: [
+            [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }],
+            [{ text: getMsg(lang, "btn_abyssinia"), callback_data: "pay_abyssinia" }]
+          ]
         };
         await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, reply_markup: kb });
         return new Response("OK", { headers: corsHeaders });

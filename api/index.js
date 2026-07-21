@@ -467,6 +467,32 @@ function parseIsoDatetime(isoStr) {
     return new Date(isoStr);
 }
 
+function gregorianToEthiopianString(gregDateStr) {
+    if (!gregDateStr) return "";
+    try {
+        const parts = gregDateStr.split('-');
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+        
+        const a = Math.floor((14 - month) / 12);
+        const y = year + 4800 - a;
+        const m = month + 12 * a - 3;
+        const jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+        
+        const r = (jdn - 1723856) % 1461;
+        const n = (r % 365) + 365 * Math.floor(r / 1460);
+        
+        const ethYear = 4 * Math.floor((jdn - 1723856) / 1461) + Math.floor(r / 365) - Math.floor(r / 1460);
+        const ethMonth = Math.floor(n / 30) + 1;
+        const ethDay = (n % 30) + 1;
+        
+        return `${ethDay}/${ethMonth}/${ethYear}`;
+    } catch (e) {
+        return gregDateStr;
+    }
+}
+
 // Generate PDF Certificate Helper
 async function generateCertificatePdf(name, regDate, finishDate, name2) {
     const fs = require('fs');
@@ -523,7 +549,8 @@ async function generateCertificatePdf(name, regDate, finishDate, name2) {
     html = html.replace('<div class="dotted-blank-line" style="width: 185px;"></div>', `<div class="dotted-blank-line" style="width: 185px; text-align: center; font-weight: bold;">${programAm}</div>`);
     html = html.replace('PROGRAM IN<div class="dotted-blank-line" style="width: 200px;"></div> AT CRAFTOPIA.', `PROGRAM IN <div class="dotted-blank-line" style="width: 200px; text-align: center; font-weight: bold;">${programEn}</div> AT CRAFTOPIA.`);
     html = html.replace('THE TRAINING WAS CONDUCTED FOR<div class="dotted-blank-line" style="width: 95px;"></div>WEEK.', `THE TRAINING WAS CONDUCTED FOR <div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationEn}</div> WEEK.`);
-    html = html.replace('ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም', `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${finishDate}</div> ዓ.ም`);
+    const ethFinishDate = gregorianToEthiopianString(finishDate);
+    html = html.replace('ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም', `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${ethFinishDate}</div> ዓ.ም`);
     html = html.replace('DATE: <div class="fill-blank-line" style="width: 150px;"></div>', `DATE: <div class="fill-blank-line" style="width: 150px; text-align: center; font-weight: bold;">${finishDate}</div>`);
     
     let signatureHtml = 'SIGNED: <div class="fill-blank-line" style="width: 190px;"></div>';
@@ -612,7 +639,7 @@ async function sendNextQuizQuestion(chatId) {
                 if (regDateStr) {
                     try { regDate = regDateStr.split("T")[0]; } catch (e) {}
                 }
-                const finishDate = new Date().toISOString().split("T")[0];
+                const finishDate = new Date(new Date().getTime() + 3 * 3600000).toISOString().split("T")[0];
                 pdfBytes = await generateCertificatePdf(name, regDate, finishDate, name2);
             } catch (pdfErr) {
                 console.error("Error generating completion certificate PDF:", pdfErr.message);
@@ -1748,7 +1775,8 @@ app.post('/api/bot', async (req, res) => {
                         const msg = getMsg(lang, "ask_payment_method");
                         const kb = {
                             inline_keyboard: [
-                                [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }]
+                                [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }],
+                                [{ text: getMsg(lang, "btn_abyssinia"), callback_data: "pay_abyssinia" }]
                             ]
                         };
                         await sendTelegramRequest("sendMessage", {
@@ -1764,6 +1792,10 @@ app.post('/api/bot', async (req, res) => {
                             const accName = settings.telebirr_name || "Craftopia School";
                             const accNum = settings.telebirr_number || "0911223344";
                             msg = getMsg(lang, "telebirr_payment_instructions").replace("{amount}", amount).replace("{acc_name}", accName).replace("{acc_num}", accNum);
+                        } else if (currentStep.includes("abyssinia")) {
+                            const accName = settings.abyssinia_name || "Craftopia BoA";
+                            const accNum = settings.abyssinia_number || "987654321";
+                            msg = getMsg(lang, "abyssinia_payment_instructions").replace("{amount}", amount).replace("{acc_name}", accName).replace("{acc_num}", accNum);
                         } else {
                             const accName = settings.cbe_name || "Craftopia Hand Craft";
                             const accNum = settings.cbe_number || "1000123456789";
@@ -2001,7 +2033,7 @@ app.post('/api/bot', async (req, res) => {
                 reply_markup: { inline_keyboard: [] }
             });
             await sendNextQuizQuestion(chatId);
-        } else if (["pay_telebirr", "pay_cbe"].includes(callbackData)) {
+        } else if (["pay_telebirr", "pay_cbe", "pay_abyssinia"].includes(callbackData)) {
             const chatId = callbackQuery.message.chat.id;
             await sendTelegramRequest("answerCallbackQuery", { callback_query_id: callbackQueryId });
             
@@ -2025,6 +2057,11 @@ app.post('/api/bot', async (req, res) => {
                     const accNum = settings.telebirr_number || "0911223344";
                     msg = getMsg(lang, "telebirr_payment_instructions").replace("{amount}", amount).replace("{acc_name}", accName).replace("{acc_num}", accNum);
                     await db.upsertRegistration(chatId, { step: buildStep(lang, "awaiting_receipt_telebirr") });
+                } else if (callbackData === "pay_abyssinia") {
+                    const accName = settings.abyssinia_name || "Craftopia BoA";
+                    const accNum = settings.abyssinia_number || "987654321";
+                    msg = getMsg(lang, "abyssinia_payment_instructions").replace("{amount}", amount).replace("{acc_name}", accName).replace("{acc_num}", accNum);
+                    await db.upsertRegistration(chatId, { step: buildStep(lang, "awaiting_receipt_abyssinia") });
                 } else {
                     const accName = settings.cbe_name || "Craftopia Hand Craft";
                     const accNum = settings.cbe_number || "1000123456789";
@@ -2057,7 +2094,7 @@ app.post('/api/bot', async (req, res) => {
             if (regDateStr) {
                 try { regDate = regDateStr.split("T")[0]; } catch (e) { /* ignore */ }
             }
-            const finishDate = new Date().toISOString().split("T")[0];
+            const finishDate = new Date(new Date().getTime() + 3 * 3600000).toISOString().split("T")[0];
             
             const [lang] = getLangAndStep(reg);
             const caption = getMsg(lang, "course_completed_msg").replace("{name}", name);
@@ -2278,7 +2315,8 @@ app.post('/api/bot', async (req, res) => {
                     const msg = getMsg(lang, "ready_new_receipt");
                     const kb = {
                         inline_keyboard: [
-                            [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }]
+                            [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }],
+                            [{ text: getMsg(lang, "btn_abyssinia"), callback_data: "pay_abyssinia" }]
                         ]
                     };
                     await sendTelegramRequest("sendMessage", {
@@ -2424,7 +2462,8 @@ app.post('/api/bot', async (req, res) => {
         const msg = `${getMsg(lang, "phone_saved")}\n\n${getMsg(lang, "ask_payment_method")}`;
         const kb = {
             inline_keyboard: [
-                [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }]
+                [{ text: getMsg(lang, "btn_telebirr"), callback_data: "pay_telebirr" }, { text: getMsg(lang, "btn_cbe"), callback_data: "pay_cbe" }],
+                [{ text: getMsg(lang, "btn_abyssinia"), callback_data: "pay_abyssinia" }]
             ]
         };
         await sendTelegramRequest("sendMessage", {
@@ -2737,7 +2776,7 @@ app.get('/api/certificate', async (req, res) => {
     
     const name = reg.name || "Student";
     const name2 = reg.name2 || name;
-    const finishDate = new Date().toISOString().split("T")[0];
+    const finishDate = new Date(new Date().getTime() + 3 * 3600000).toISOString().split("T")[0];
     
     const fs = require('fs');
     const path = require('path');
@@ -2784,9 +2823,10 @@ app.get('/api/certificate', async (req, res) => {
         'THE TRAINING WAS CONDUCTED FOR<div class="dotted-blank-line" style="width: 95px;"></div>WEEK.',
         `THE TRAINING WAS CONDUCTED FOR <div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationEn}</div> WEEK.`
     );
+    const ethFinishDate = gregorianToEthiopianString(finishDate);
     html = html.replace(
         'ቀን <div class="dotted-blank-line" style="width: 165px;"></div> ዓ.ም',
-        `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${finishDate}</div> ዓ.ም`
+        `ቀን <div class="dotted-blank-line" style="width: 165px; text-align: center; font-weight: bold;">${ethFinishDate}</div> ዓ.ም`
     );
     html = html.replace(
         'DATE: <div class="fill-blank-line" style="width: 150px;"></div>',
