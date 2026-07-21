@@ -2,6 +2,8 @@ const MESSAGES = {
     "en": {
         "welcome_choose_lang": "Welcome to Craftopia Hand Craft School!\n\nPlease select your language:",
         "ask_name": "Welcome! Let's get started.\n\nPlease enter your **Full Name**:",
+        "ask_name_am": "Please enter your **Full Name in Amharic** (e.g. አበበ በሶ):",
+        "ask_name_en": "Please enter your **Full Name in English** (e.g. Abebe Beso):",
         "invalid_name": "Please enter a valid full name (letters only).",
         "ask_phone": "Great! Now please share your **Phone Number** by clicking the button below, or type it manually (e.g. 0911...).",
         "btn_share_contact": "Share Contact 📞",
@@ -55,6 +57,8 @@ const MESSAGES = {
     "am": {
         "welcome_choose_lang": "ወደ ክራፍቶፒያ የእጅ ስራ ትምህርት ቤት እንኳን በደህና መጡ!\n\nእባክዎ ቋንቋዎን ይምረጡ:",
         "ask_name": "እንኳን በደህና መጡ! እንጀምር።\n\nእባክዎ **ሙሉ ስምዎን** ያስገቡ:",
+        "ask_name_am": "እባክዎ **ሙሉ ስምዎን በአማርኛ** ያስገቡ (ምሳሌ፡ አበበ በሶ):",
+        "ask_name_en": "እባክዎ **ሙሉ ስምዎን በእንግሊዝኛ** ያስገቡ (ምሳሌ፡ Abebe Beso):",
         "invalid_name": "እባክዎ ትክክለኛ ሙሉ ስም ያስገቡ (ፊደላት ብቻ)።",
         "ask_phone": "በጣም ጥሩ! አሁን እባክዎ ከታች ያለውን አዝራር በመጫን **ስልክ ቁጥርዎን** ያጋሩ፣ ወይም በእጅዎ ይፃፉ (ለምሳሌ 0911...)።",
         "btn_share_contact": "ስልክ ቁጥር አጋራ 📞",
@@ -108,6 +112,8 @@ const MESSAGES = {
     "om": {
         "welcome_choose_lang": "Baga Gara Mana Barumsaa Harka-Hujii Craftopia nagaan dhuftan!\n\nMaaloo afaan keessan filadha:",
         "ask_name": "Baga nagaan dhuftan! Haa jalqabnu.\n\nMaaloo **Maqaa Guutuu** keessan galchaa:",
+        "ask_name_am": "Maaloo guutuu maqaa keessanii **Afaan Amaaraatiin** barreessaa (fkn. አበበ በሶ):",
+        "ask_name_en": "Maaloo guutuu maqaa keessanii **Afaan Ingiliffaatiin** barreessaa (fkn. Abebe Beso):",
         "invalid_name": "Maaloo maqaa guutuu sirrii ta'e (qubee qofa) galchaa.",
         "ask_phone": "Baay'ee gaariidha! Amma maaloo liinkii gaditti argamu cuqaasuun **Lakkoofsa Bilbilaa** keessan nuuf qoodaa, ykn harkaan barreessaa (fkn, 0911...).",
         "btn_share_contact": "Lakkoofsa Bilbilaa Qoodi 📞",
@@ -161,6 +167,8 @@ const MESSAGES = {
     "ti": {
         "welcome_choose_lang": "እንቋዕ ናብ ናይ ኢደ-ስራሕ ቤት ትምህርቲ ክራፍቶፒያ ብደሓን መጻእኹም!\n\nበጃኹም ቋንቋኹም ይምረጹ:",
         "ask_name": "እንቋዕ ብደሓን መጻእኹም! ንጀምር።\n\nበጃኹም **ምሉእ ስምኹም** የእትዉ:",
+        "ask_name_am": "በጃኹም ሙሉእ ስምኩም በ**አምሓርኛ** የእትዉ (ምሳሌ፡ አበበ በሶ):",
+        "ask_name_en": "በጃኹም ሙሉእ ስምኩም በ**እንግሊዝኛ** የእትዉ (ምሳሌ፡ Abebe Beso):",
         "invalid_name": "በጃኹም ትክክለኛ ምሉእ ስም የእትዉ (ፊደላት ጥራይ)።",
         "ask_phone": "ጣዕሚ ጽቡቕ! ሕጂ በጃኹም ነቲ ታሕቲ ዘሎ ቁልፊ ብምጥዋቕ **ቁጽሪ ስልክኹም** የካፍሉና፣ ወይ ብኢድኩም ጽሓፉ (ንኣብነት 0911...)",
         "btn_share_contact": "ቁጽሪ ስልኪ ኣካፍል 📞",

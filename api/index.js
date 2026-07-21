@@ -468,10 +468,12 @@ function parseIsoDatetime(isoStr) {
 }
 
 // Generate PDF Certificate Helper
-async function generateCertificatePdf(name, regDate, finishDate) {
+async function generateCertificatePdf(name, regDate, finishDate, name2) {
     const fs = require('fs');
     const path = require('path');
     const settings = await db.getPaymentSettings();
+
+    const actualName2 = name2 || name;
 
     let templatePath = path.join(__dirname, 'IMG_6757.html');
     if (!fs.existsSync(templatePath)) {
@@ -516,7 +518,7 @@ async function generateCertificatePdf(name, regDate, finishDate) {
     html = html.replace('</head>', printStyles + '</head>');
 
     html = html.replace('<div class="fill-blank-line" style="width: 88%; margin-left: 10px;"></div>', `<div class="fill-blank-line" style="width: 88%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`);
-    html = html.replace('<div class="fill-blank-line" style="width: 90%; margin-left: 10px;"></div>', `<div class="fill-blank-line" style="width: 90%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`);
+    html = html.replace('<div class="fill-blank-line" style="width: 90%; margin-left: 10px;"></div>', `<div class="fill-blank-line" style="width: 90%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${actualName2}</div>`);
     html = html.replace('<div class="dotted-blank-line" style="width: 95px;"></div>', `<div class="dotted-blank-line" style="width: 95px; text-align: center; font-weight: bold;">${durationAm}</div>`);
     html = html.replace('<div class="dotted-blank-line" style="width: 185px;"></div>', `<div class="dotted-blank-line" style="width: 185px; text-align: center; font-weight: bold;">${programAm}</div>`);
     html = html.replace('PROGRAM IN<div class="dotted-blank-line" style="width: 200px;"></div> AT CRAFTOPIA.', `PROGRAM IN <div class="dotted-blank-line" style="width: 200px; text-align: center; font-weight: bold;">${programEn}</div> AT CRAFTOPIA.`);
@@ -596,6 +598,7 @@ async function sendNextQuizQuestion(chatId) {
             
             const reg = await db.getRegistration(chatId);
             const name = reg ? (reg.name || "Student") : "Student";
+            const name2 = reg ? (reg.name2 || name) : name;
             const [lang] = getLangAndStep(reg);
             
             let pdfBytes = null;
@@ -606,7 +609,7 @@ async function sendNextQuizQuestion(chatId) {
                     try { regDate = regDateStr.split("T")[0]; } catch (e) {}
                 }
                 const finishDate = new Date().toISOString().split("T")[0];
-                pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
+                pdfBytes = await generateCertificatePdf(name, regDate, finishDate, name2);
             } catch (pdfErr) {
                 console.error("Error generating completion certificate PDF:", pdfErr.message);
                 await sendTelegramRequest("sendMessage", { chat_id: chatId, text: "DEBUG PDF Error: " + pdfErr.message });
@@ -1669,12 +1672,13 @@ app.post('/api/bot', async (req, res) => {
                     step: buildStep(lang, "awaiting_name"),
                     status: "started",
                     name: "",
+                    name2: "",
                     phone: "",
                     receipt_number: ""
                 });
                 await sendTelegramRequest("sendMessage", {
                     chat_id: chatId,
-                    text: getMsg(lang, "ask_name"),
+                    text: getMsg(lang, "ask_name_am"),
                     parse_mode: "Markdown",
                     reply_markup: getMenuKeyboard(lang)
                 });
@@ -1688,7 +1692,7 @@ app.post('/api/bot', async (req, res) => {
                     await db.upsertRegistration(chatId, { step: buildStep(lang, "awaiting_name"), status: "started" });
                     await sendTelegramRequest("sendMessage", {
                         chat_id: chatId,
-                        text: getMsg(lang, "ask_name"),
+                        text: getMsg(lang, "ask_name_am"),
                         parse_mode: "Markdown",
                         reply_markup: getMenuKeyboard(lang)
                     });
@@ -1702,7 +1706,7 @@ app.post('/api/bot', async (req, res) => {
                     await db.upsertRegistration(chatId, { step: buildStep(lang, "awaiting_name") });
                     await sendTelegramRequest("sendMessage", {
                         chat_id: chatId,
-                        text: getMsg(lang, "ask_name"),
+                        text: getMsg(lang, "ask_name_am"),
                         parse_mode: "Markdown",
                         reply_markup: getMenuKeyboard(lang)
                     });
@@ -1710,7 +1714,14 @@ app.post('/api/bot', async (req, res) => {
                     if (currentStep === "awaiting_name") {
                         await sendTelegramRequest("sendMessage", {
                             chat_id: chatId,
-                            text: getMsg(lang, "ask_name"),
+                            text: getMsg(lang, "ask_name_am"),
+                            parse_mode: "Markdown",
+                            reply_markup: getMenuKeyboard(lang)
+                        });
+                    } else if (currentStep === "awaiting_name2") {
+                        await sendTelegramRequest("sendMessage", {
+                            chat_id: chatId,
+                            text: getMsg(lang, "ask_name_en"),
                             parse_mode: "Markdown",
                             reply_markup: getMenuKeyboard(lang)
                         });
@@ -2035,6 +2046,7 @@ app.post('/api/bot', async (req, res) => {
             
             const reg = await db.getRegistration(chatId);
             const name = reg ? (reg.name || "Student") : "Student";
+            const name2 = reg ? (reg.name2 || name) : name;
             const regDateStr = reg ? (reg.created_at || "") : "";
             
             let regDate = "Unknown";
@@ -2047,7 +2059,7 @@ app.post('/api/bot', async (req, res) => {
             const caption = getMsg(lang, "course_completed_msg").replace("{name}", name);
             
             try {
-                const pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
+                const pdfBytes = await generateCertificatePdf(name, regDate, finishDate, name2);
                 
                 const FormData = require('form-data');
                 const form = new FormData();
@@ -2340,7 +2352,26 @@ app.post('/api/bot', async (req, res) => {
             return res.send("OK");
         }
             
-        await db.upsertRegistration(chatId, { name: text, step: buildStep(lang, "awaiting_phone") });
+        await db.upsertRegistration(chatId, { name: text, step: buildStep(lang, "awaiting_name2") });
+        await sendTelegramRequest("sendMessage", {
+            chat_id: chatId,
+            text: getMsg(lang, "ask_name_en"),
+            parse_mode: "Markdown",
+            reply_markup: getMenuKeyboard(lang)
+        });
+        return res.send("OK");
+    }
+
+    if (currentStep === "awaiting_name2") {
+        if (!text) {
+            await sendTelegramRequest("sendMessage", {
+                chat_id: chatId,
+                text: getMsg(lang, "invalid_name")
+            });
+            return res.send("OK");
+        }
+            
+        await db.upsertRegistration(chatId, { name2: text, step: buildStep(lang, "awaiting_phone") });
         const keyboard = {
             keyboard: [[{
                 text: getMsg(lang, "btn_share_contact"),
@@ -2701,6 +2732,7 @@ app.get('/api/certificate', async (req, res) => {
     if (!reg) return res.status(404).send("Registration not found");
     
     const name = reg.name || "Student";
+    const name2 = reg.name2 || name;
     const finishDate = new Date().toISOString().split("T")[0];
     
     const fs = require('fs');
@@ -2730,7 +2762,7 @@ app.get('/api/certificate', async (req, res) => {
     );
     html = html.replace(
         '<div class="fill-blank-line" style="width: 90%; margin-left: 10px;"></div>',
-        `<div class="fill-blank-line" style="width: 90%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name}</div>`
+        `<div class="fill-blank-line" style="width: 90%; margin-left: 10px; text-align: center; font-weight: bold; font-size: 16px;">${name2}</div>`
     );
     html = html.replace(
         '<div class="dotted-blank-line" style="width: 95px;"></div>',

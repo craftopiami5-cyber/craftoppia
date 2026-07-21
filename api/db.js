@@ -260,11 +260,12 @@ async function getRegistrationsPaginated(page = 1, limit = 10, status = null, se
         if (search) {
             const q = search.toLowerCase();
             const nameVal = (r.name || "").toLowerCase();
+            const name2Val = (r.name2 || "").toLowerCase();
             const phoneVal = (r.phone || "").toLowerCase();
             const receiptVal = (r.receipt_number || "").toLowerCase();
             const chatVal = String(r.chat_id || "");
             
-            if (!nameVal.includes(q) && !phoneVal.includes(q) && !receiptVal.includes(q) && !chatVal.includes(q)) {
+            if (!nameVal.includes(q) && !name2Val.includes(q) && !phoneVal.includes(q) && !receiptVal.includes(q) && !chatVal.includes(q)) {
                 continue;
             }
         }

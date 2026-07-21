@@ -25,6 +25,8 @@ const STATIC_MESSAGES = {
   "en": {
     "welcome_choose_lang": "🇬🇧 Welcome to Craftopia Hand Craft School Registration Bot!\nPlease select your preferred language below:",
     "ask_name": "📝 Please enter your full name:",
+    "ask_name_am": "📝 Please enter your **Full Name in Amharic** (e.g. አበበ በሶ):",
+    "ask_name_en": "📝 Please enter your **Full Name in English** (e.g. Abebe Beso):",
     "invalid_name": "❌ Name cannot be empty. Please enter your name:",
     "ask_phone": "📞 Please share your phone number using the button below or type it:",
     "btn_share_contact": "Share Contact 📞",
@@ -68,6 +70,8 @@ const STATIC_MESSAGES = {
   "am": {
     "welcome_choose_lang": "🇪🇹 ወደ ክራፍቶፒያ የእጅ ጥበብ ትምህርት ቤት የእጅ ሥራ ምዝገባ ቦት እንኳን ደህና መጡ!\nእባክዎ ተመራጭ ቋንቋዎን ከታች ይምረጡ:",
     "ask_name": "📝 እባክዎን ሙሉ ስምዎን ያስገቡ:",
+    "ask_name_am": "📝 እባክዎ **ሙሉ ስምዎን በአማርኛ** ያስገቡ (ምሳሌ፡ አበበ በሶ):",
+    "ask_name_en": "📝 እባክዎ **ሙሉ ስምዎን በእንግሊዝኛ** ያስገቡ (ምሳሌ፡ Abebe Beso):",
     "invalid_name": "❌ ስም ባዶ መሆን አይችልም። እባክዎን ስምዎን ያስገቡ:",
     "ask_phone": "📞 እባክዎን ከታች ያለውን ቁልፍ በመጫን ስልክ ቁጥርዎን ያጋሩ ወይም ይፃፉ:",
     "btn_share_contact": "ስልክ ቁጥር አጋራ 📞",
@@ -256,6 +260,7 @@ async function sendNextQuizQuestion(chatId: number) {
       
       const { data: reg } = await supabase.from("registrations").select("*").eq("chat_id", chatId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       const name = reg ? (reg.name || "Student") : "Student";
+      const name2 = reg ? (reg.name2 || name) : name;
       const regDateStr = reg ? (reg.created_at || "") : "";
       
       let regDate = "Unknown";
@@ -266,7 +271,7 @@ async function sendNextQuizQuestion(chatId: number) {
       
       let pdfBytes = null;
       try {
-        pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
+        pdfBytes = await generateCertificatePdf(name, regDate, finishDate, name2);
       } catch (pdfErr: any) {
         console.error("Error generating completion certificate PDF:", pdfErr.message);
       }
@@ -353,7 +358,8 @@ async function getFontBold(): Promise<Uint8Array> {
   return cachedFontBold;
 }
 
-async function generateCertificatePdf(name: string, regDate: string, finishDate: string): Promise<Uint8Array> {
+async function generateCertificatePdf(name: string, regDate: string, finishDate: string, name2?: string): Promise<Uint8Array> {
+  const actualName2 = name2 || name;
   let settings: any = {};
   try {
     const { data: adminRec } = await supabase
@@ -470,8 +476,8 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     const rx = 455, rw = 320;
     // Line 1: To ________ (Name)
     doc.fillColor(forestGreen).font(latFont(false)).fontSize(12).text("To", rx, 206);
-    doc.fillColor(forestGreen).font(autoFont(name, true)).fontSize(13)
-       .text(name, rx + 25, 202, { width: rw - 25, align: "center" });
+    doc.fillColor(forestGreen).font(autoFont(actualName2, true)).fontSize(13)
+       .text(actualName2, rx + 25, 202, { width: rw - 25, align: "center" });
     doc.moveTo(rx + 20, 218).lineTo(rx + rw, 218).strokeColor(forestGreen).lineWidth(1).stroke();
 
     // Line 2 & 3: THIS CERTIFICATE IS PROUDLY PRESENTED FOR / SUCCESSFULLY COMPLETING A SHORT-TERM TRAINING
@@ -809,12 +815,13 @@ async function handleRequest(req: Request): Promise<Response> {
               step: buildStep(lang, "awaiting_name"),
               status: "started",
               name: "",
+              name2: "",
               phone: "",
               receipt_number: ""
             });
             await sendTelegramRequest("sendMessage", {
               chat_id: chatId,
-              text: getMsg(lang, "ask_name"),
+              text: getMsg(lang, "ask_name_am"),
               parse_mode: "Markdown",
               reply_markup: getMenuKeyboard(lang)
             });
@@ -834,14 +841,16 @@ async function handleRequest(req: Request): Promise<Response> {
               await supabase.from("registrations").update({ step: buildStep(lang, "awaiting_name") }).eq("id", reg.id);
               await sendTelegramRequest("sendMessage", {
                 chat_id: chatId,
-                text: getMsg(lang, "ask_name"),
+                text: getMsg(lang, "ask_name_am"),
                 parse_mode: "Markdown",
                 reply_markup: getMenuKeyboard(lang)
               });
             } else {
               // Ask them standard steps
               if (currentStep === "awaiting_name") {
-                await sendTelegramRequest("sendMessage", { chat_id: chatId, text: getMsg(lang, "ask_name"), parse_mode: "Markdown", reply_markup: getMenuKeyboard(lang) });
+                await sendTelegramRequest("sendMessage", { chat_id: chatId, text: getMsg(lang, "ask_name_am"), parse_mode: "Markdown", reply_markup: getMenuKeyboard(lang) });
+              } else if (currentStep === "awaiting_name2") {
+                await sendTelegramRequest("sendMessage", { chat_id: chatId, text: getMsg(lang, "ask_name_en"), parse_mode: "Markdown", reply_markup: getMenuKeyboard(lang) });
               } else if (currentStep === "awaiting_phone") {
                 const keyboard = {
                   keyboard: [[{ text: getMsg(lang, "btn_share_contact"), request_contact: true }]],
@@ -984,6 +993,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
           const { data: reg } = await supabase.from("registrations").select("*").eq("chat_id", chatId).order("created_at", { ascending: false }).limit(1).maybeSingle();
           const name = reg ? (reg.name || "Student") : "Student";
+          const name2 = reg ? (reg.name2 || name) : name;
           const regDateStr = reg ? (reg.created_at || "") : "";
 
           let regDate = "Unknown";
@@ -992,7 +1002,7 @@ async function handleRequest(req: Request): Promise<Response> {
           }
           const finishDate = new Date().toISOString().split("T")[0];
 
-          const pdfBytes = await generateCertificatePdf(name, regDate, finishDate);
+          const pdfBytes = await generateCertificatePdf(name, regDate, finishDate, name2);
 
           const form = new FormData();
           form.append("chat_id", String(chatId));
@@ -1198,7 +1208,22 @@ async function handleRequest(req: Request): Promise<Response> {
           await sendTelegramRequest("sendMessage", { chat_id: chatId, text: getMsg(lang, "invalid_name") });
           return new Response("OK", { headers: corsHeaders });
         }
-        await supabase.from("registrations").update({ name: text, step: buildStep(lang, "awaiting_phone") }).eq("id", reg.id);
+        await supabase.from("registrations").update({ name: text, step: buildStep(lang, "awaiting_name2") }).eq("id", reg.id);
+        await sendTelegramRequest("sendMessage", {
+          chat_id: chatId,
+          text: getMsg(lang, "ask_name_en"),
+          parse_mode: "Markdown",
+          reply_markup: getMenuKeyboard(lang)
+        });
+        return new Response("OK", { headers: corsHeaders });
+      }
+
+      if (currentStep === "awaiting_name2") {
+        if (!text) {
+          await sendTelegramRequest("sendMessage", { chat_id: chatId, text: getMsg(lang, "invalid_name") });
+          return new Response("OK", { headers: corsHeaders });
+        }
+        await supabase.from("registrations").update({ name2: text, step: buildStep(lang, "awaiting_phone") }).eq("id", reg.id);
         const keyboard = {
           keyboard: [[{ text: getMsg(lang, "btn_share_contact"), request_contact: true }]],
           one_time_keyboard: true,

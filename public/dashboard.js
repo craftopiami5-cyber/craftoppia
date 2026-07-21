@@ -177,6 +177,7 @@ function renderTable(regs, totalCount) {
       <tr>
         <td>${date}</td>
         <td><b>${escapeHtml(reg.name || '-')}</b></td>
+        <td><b>${escapeHtml(reg.name2 || '-')}</b></td>
         <td>${escapeHtml(reg.phone || '-')}</td>
         <td>${receiptHtml}</td>
         <td>${referredByHtml}</td>
