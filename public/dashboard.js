@@ -152,24 +152,15 @@ function renderTable(regs, totalCount) {
     
     let receiptHtml = `<code>${escapeHtml(reg.receipt_number || '-')}</code>`;
     if (reg.receipt_image_url) {
-      if (reg.receipt_image_url.startsWith('http')) {
-        receiptHtml += `
-          <div style="margin-top: 6px;">
-            <a href="${reg.receipt_image_url}" target="_blank">
-              <img src="${reg.receipt_image_url}" alt="Receipt" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--card-border); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
-            </a>
-          </div>
-        `;
-      } else {
-        const proxyUrl = `/api/admin/photo/${reg.receipt_image_url}`;
-        receiptHtml += `
-          <div style="margin-top: 6px;">
-            <a href="${proxyUrl}" target="_blank">
-              <img src="${proxyUrl}" alt="Receipt" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--card-border); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
-            </a>
-          </div>
-        `;
-      }
+      const adminToken = localStorage.getItem('adminToken') || '';
+      const proxyUrl = `/api/admin/photo/${encodeURIComponent(reg.receipt_image_url)}?token=${adminToken}`;
+      receiptHtml += `
+        <div style="margin-top: 6px;">
+          <a href="${proxyUrl}" target="_blank">
+            <img src="${proxyUrl}" alt="Receipt" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--card-border); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+          </a>
+        </div>
+      `;
     }
 
     return `
