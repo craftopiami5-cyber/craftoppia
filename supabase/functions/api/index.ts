@@ -403,12 +403,7 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     // ── Background ─────────────────────────────────────────────────────────
     doc.image(bgBytes, 0, 0, { width: 841.89, height: 595.28 });
 
-    // ── SECTION 6: Vertical Left Margin Text ───────────────────────────────
-    doc.save();
-    doc.translate(22, 297.64);
-    doc.rotate(-90);
-    doc.font("Helvetica-Bold").fontSize(7).fillColor(antiqueGold).text("MINA CARD", -30, 0);
-    doc.restore();
+
 
     // ── SECTION 2: Header and Logo ─────────────────────────────────────────
     // 1. Institution Name (Amharic) - Located above the logo
