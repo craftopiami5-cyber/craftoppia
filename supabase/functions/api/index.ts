@@ -65,7 +65,8 @@ const STATIC_MESSAGES = {
     "welcome_name_prefix": "Hello {name}! ",
     "receipt_approved_msg": "🎉 **Receipt Verification Approved!**\n\nHello **{name}**, your receipt `{receipt}` has been verified successfully. You are now approved to join our premium private channel!\n\n🔗 **Your One-time Invite Link**:\n{link}\n\n*Note: This link is unique and can only be used by one person.*",
     "receipt_declined_msg": "❌ **Receipt Verification Declined**\n\nHello **{name}**, we are sorry, but your receipt `{receipt}` has been declined.\n\n⚠️ **Reason**: {reason}",
-    "referral_reward_msg": "🎁 **Congratulations! You referred 3 friends successfully!**\n\nHello **{name}**, because you have referred 3 friends, you got the Craftopia course for free! You are now approved to join our premium private channel!\n\n🔗 **Your One-time Invite Link**:\n{link}\n\n*Note: This link is unique and can only be used by one person.*"
+    "referral_reward_msg": "🎁 **Congratulations! You referred 3 friends successfully!**\n\nHello **{name}**, because you have referred 3 friends, you got the Craftopia course for free! You are now approved to join our premium private channel!\n\n🔗 **Your One-time Invite Link**:\n{link}\n\n*Note: This link is unique and can only be used by one person.*",
+    "quiz_not_completed": "⚠️ **Quiz Not Completed**\n\nYou must complete all daily quizzes to get a certificate of completion."
   },
   "am": {
     "welcome_choose_lang": "🇪🇹 ወደ ክራፍቶፒያ የእጅ ጥበብ ትምህርት ቤት የእጅ ሥራ ምዝገባ ቦት እንኳን ደህና መጡ!\nእባክዎ ተመራጭ ቋንቋዎን ከታች ይምረጡ:",
@@ -110,7 +111,8 @@ const STATIC_MESSAGES = {
     "welcome_name_prefix": "ሰላም {name}! ",
     "receipt_approved_msg": "🎉 **የደረሰኝ ማረጋገጫ ጸድቋል!**\n\nሰላም **{name}**፣ የደረሰኝ ቁጥርዎ `{receipt}` በተሳካ ሁኔታ ተረጋግጧል። አሁን የእኛን ፕሪሚየም የግል ቻናል ለመቀላቀል ፈቃድ አግኝተዋል!\n\n🔗 **የአንድ ጊዜ መጋበዣ ሊንክዎ**:\n{link}\n\n*ማስታወሻ: ይህ ሊንክ ልዩ ነው እና በአንድ ሰው ብቻ ነው ጥቅም ላይ ሊውል የሚችለው።*",
     "receipt_declined_msg": "❌ **የደረሰኝ ማረጋገጫ ተቀባይነት አላገኘም**\n\nሰላም **{name}**፣ የደረሰኝ ቁጥርዎ `{receipt}` ውድቅ ተደርጓል።\n\n⚠️ **ምክንያት**: {reason}",
-    "referral_reward_msg": "🎁 **እንኳን ደስ አሰኞት! 3 ጓደኞችን በተሳካ ሁኔታ ጋብዘዋል!**\n\nሰላም **{name}**፣ 3 ሰዎችን ስለጋበዙ የCraftopia ኮርሱን በነጻ አግኝተዋል! አሁን የእኛን ፕሪሚየም የግል ቻናል ለመቀላቀል ፈቃድ አግኝተዋል!\n\n🔗 **የአንድ ጊዜ መጋበዣ ሊንክዎ**:\n{link}\n\n*ማስታወሻ: ይህ ሊንክ ልዩ ነው እና በአንድ ሰው ብቻ ነው ጥቅም ላይ ሊውል የሚችለው።*"
+    "referral_reward_msg": "🎁 **እንኳን ደስ አሰኞት! 3 ጓደኞችን በተሳካ ሁኔታ ጋብዘዋል!**\n\nሰላም **{name}**፣ 3 ሰዎችን ስለጋበዙ የCraftopia ኮርሱን በነጻ አግኝተዋል! አሁን የእኛን ፕሪሚየም የግል ቻናል ለመቀላቀል ፈቃድ አግኝተዋል!\n\n🔗 **የአንድ ጊዜ መጋበዣ ሊንክዎ**:\n{link}\n\n*ማስታወሻ: ይህ ሊንክ ልዩ ነው እና በአንድ ሰው ብቻ ነው ጥቅም ላይ ሊውል የሚችለው።*",
+    "quiz_not_completed": "⚠️ **ጥያቄዎች አልተጠናቀቁም**\n\nየማጠናቀቂያ ሰርተፊኬት ለማግኘት ሁሉንም ዕለታዊ ጥያቄዎች ማጠናቀቅ አለብዎት።"
   }
 };
 
@@ -1231,6 +1233,17 @@ async function handleRequest(req: Request): Promise<Response> {
             message_id: callbackQuery.message.message_id,
             reply_markup: { inline_keyboard: [] }
           });
+
+          const { data: prog } = await supabase.from("user_quiz_progress").select("is_completed").eq("chat_id", chatId).maybeSingle();
+          if (!prog || !prog.is_completed) {
+            const { data: reg } = await supabase.from("registrations").select("*").eq("chat_id", chatId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+            const [lang] = getLangAndStep(reg);
+            await sendTelegramRequest("sendMessage", {
+              chat_id: chatId,
+              text: getMsg(lang, "quiz_not_completed")
+            });
+            return new Response("OK", { headers: corsHeaders });
+          }
 
           const { data: reg } = await supabase.from("registrations").select("*").eq("chat_id", chatId).order("created_at", { ascending: false }).limit(1).maybeSingle();
           const name = reg ? (reg.name || "Student") : "Student";

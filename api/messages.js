@@ -54,7 +54,8 @@ const MESSAGES = {
         "day_completed_msg": "✅ **Day {day} Completed!**\n\nGreat job! You have finished today's questions. Tomorrow's questions will be sent to you automatically!",
         "course_completed_msg": "🎓 **CONGRATULATIONS! COURSE COMPLETED!** 🎓\n\nHello **{name}**, you have successfully completed the entire Craftopia Quiz Sequence! Here is your Certificate of Completion.",
         "err_failed_upload": "Failed to upload image. Please try again or type your receipt number.",
-        "err_upload_receipt_only": "Please upload a screenshot/image of your receipt instead of typing text."
+        "err_upload_receipt_only": "Please upload a screenshot/image of your receipt instead of typing text.",
+        "quiz_not_completed": "⚠️ **Quiz Not Completed**\n\nYou must complete all daily quizzes to get a certificate of completion."
     },
     "am": {
         "welcome_choose_lang": "ወደ ክራፍቶፒያ የእጅ ስራ ትምህርት ቤት እንኳን በደህና መጡ!\n\nእባክዎ ቋንቋዎን ይምረጡ:",
@@ -111,7 +112,8 @@ const MESSAGES = {
         "day_completed_msg": "✅ **የቀን {day} ጥያቄዎችን በተሳካ ሁኔታ አጠናቀዋል!**\n\nበጣም ጥሩ! የዛሬውን ጥያቄዎች ጨርሰዋል። የነገው ጥያቄዎች በነገው እለት በራስ-ሰር ይላኩልዎታል።",
         "course_completed_msg": "🎓 **እንኳን ደስ አለዎት! ኮርሱን በተሳካ ሁኔታ አጠናቀዋል!** 🎓\n\nሰላም **{name}**፣ ሙሉውን የክራፍቶፒያ ጥያቄዎች በተሳካ ሁኔታ አጠናቀዋል! የማጠናቀቂያ ምስክር ወረቀትዎ ይኸውና::",
         "err_failed_upload": "ምስሉን መጫን አልተሳካም። እባክዎ እንደገና ይሞክሩ ወይም የደረሰኝ ቁጥሩን ይፃፉ።",
-        "err_upload_receipt_only": "እባክዎ ከመፃፍ ይልቅ የደረሰኝዎን ፎቶ/ቅጂ ይላኩ።"
+        "err_upload_receipt_only": "እባክዎ ከመፃፍ ይልቅ የደረሰኝዎን ፎቶ/ቅጂ ይላኩ።",
+        "quiz_not_completed": "⚠️ **ጥያቄዎች አልተጠናቀቁም**\n\nየማጠናቀቂያ ሰርተፊኬት ለማግኘት ሁሉንም ዕለታዊ ጥያቄዎች ማጠናቀቅ አለብዎት።"
     },
     "om": {
         "welcome_choose_lang": "Baga Gara Mana Barumsaa Harka-Hujii Craftopia nagaan dhuftan!\n\nMaaloo afaan keessan filadha:",
@@ -168,7 +170,8 @@ const MESSAGES = {
         "day_completed_msg": "✅ **Guyyaa {day} Xumurameera!**\n\nHojii gaarii! Gaaffilee har'aa xumurtaniittu. Gaaffileen boruu boru ganama ofumaan isiniif ergamu!",
         "course_completed_msg": "🎓 **BAGA GAMMADDAN! KOORSICHA XUMURTANIITTU!** 🎓\n\nAkam jirta **{name}**, gaaffilee Craftopia hunda milkiin xumurtaniittu! Kunoo waraqaa ragaa xumura keessanii.",
         "err_failed_upload": "Fakkii olfe'uun hin danda'amne. Maaloo irra deebi'ii yaali ykn lakkoofsa nagahee keessan barreessi.",
-        "err_upload_receipt_only": "Maaloo barreeffama barreessuu mannaa screenshot/fakkii nagahee keessanii olfe'aa."
+        "err_upload_receipt_only": "Maaloo barreeffama barreessuu mannaa screenshot/fakkii nagahee keessanii olfe'aa.",
+        "quiz_not_completed": "⚠️ **Qabxiin Hin Xumuramne**\n\nWaraqaa ragaa xumuraa argachuuf gaaffilee guyyaa guyyaa hunda xumuruu qabdu."
     },
     "ti": {
         "welcome_choose_lang": "እንቋዕ ናብ ናይ ኢደ-ስራሕ ቤት ትምህርቲ ክራፍቶፒያ ብደሓን መጻእኹም!\n\nበጃኹም ቋንቋኹም ይምረጹ:",
@@ -225,7 +228,8 @@ const MESSAGES = {
         "day_completed_msg": "✅ **መዓልቲ {day} ተዛዚሙ ኣሎ!**\n\nጽቡቕ ስራሕ! ናይ ሎሚ ሕቶታት ወዲእኩም ኣለኹም። ናይ ጽባሕ ሕቶታት ጽባሕ ንግሆ ብባዕሉ ክለኣኸልኩም እዩ!",
         "course_completed_msg": "🎓 **እንቋዕ ሓጎሰኩም! ኮርስ ብዓወት ተዛዚሙ!** 🎓\n\nሰላም **{name}**፣ ኩሎም ናይ ክራፍቶፒያ ሕቶታት ብዓወት ወዲእኩም ኣለኹም! ናይ ምስክር ወረቐትኩም እዚ እዩ።",
         "err_failed_upload": "ስእሊ ምስቓል ኣይተኻእለን። በጃኹም እንደገና ፈትኑ ወይ ቁጽሪ ደረሰኝኩም ጽሓፉ።",
-        "err_upload_receipt_only": "በጃኹም ጽሑፍ ካብ ምጽሓፍ ናይ ደረሰኝኩም ስክሪንሾት/ስእሊ ስደዱ።"
+        "err_upload_receipt_only": "በጃኹም ጽሑፍ ካብ ምጽሓፍ ናይ ደረሰኝኩም ስክሪንሾት/ስእሊ ስደዱ።",
+        "quiz_not_completed": "⚠️ **ፈተናታት ኣይተዛዘሙን**\n\nናይ መወዳእታ ምስክር ወረቐት ንምርካብ ኩሎም መዓልታዊ ሕቶታት ክትውድኡ ይግባእ።"
     }
 };
 

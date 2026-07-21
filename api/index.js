@@ -2152,6 +2152,17 @@ app.post('/api/bot', async (req, res) => {
                 reply_markup: { inline_keyboard: [] }
             });
             
+            const prog = await db.getUserQuizProgress(chatId);
+            if (!prog || !prog.is_completed) {
+                const reg = await db.getRegistration(chatId);
+                const [lang] = getLangAndStep(reg);
+                await sendTelegramRequest("sendMessage", {
+                    chat_id: chatId,
+                    text: getMsg(lang, "quiz_not_completed")
+                });
+                return res.send("OK");
+            }
+
             const reg = await db.getRegistration(chatId);
             const name = reg ? (reg.name || "Student") : "Student";
             const name2 = reg ? (reg.name2 || name) : name;
