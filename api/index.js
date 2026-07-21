@@ -489,9 +489,9 @@ async function generateCertificatePdf(name, regDate, finishDate) {
     const printStyles = `
         <style>
             @media print {
-                @page { size: A4 landscape; margin: 0; }
-                html, body { width: 297mm !important; height: 210mm !important; margin: 0 !important; padding: 0 !important; background-color: #ffffff !important; display: block !important; overflow: hidden !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .certificate-canvas { width: 297mm !important; height: 210mm !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; padding: 30px 40px !important; box-sizing: border-box !important; border: none !important; box-shadow: none !important; background-color: #ffffff !important; page-break-inside: avoid !important; }
+                @page { size: 10.9375in 7.7083in; margin: 0; }
+                html, body { width: 1050px !important; height: 740px !important; margin: 0 !important; padding: 0 !important; background-color: #ffffff !important; display: block !important; overflow: hidden !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .certificate-canvas { width: 1050px !important; height: 740px !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; padding: 30px 40px !important; box-sizing: border-box !important; border: none !important; box-shadow: none !important; background-color: #ffffff !important; page-break-inside: avoid !important; transform: none !important; }
                 .fill-blank-line, .dotted-blank-line { vertical-align: baseline !important; height: auto !important; text-align: center !important; font-weight: bold !important; display: inline-block !important; }
                 .date-container-left, .date-container-right { display: inline-flex !important; align-items: baseline !important; }
             }
@@ -517,13 +517,14 @@ async function generateCertificatePdf(name, regDate, finishDate) {
         
         const form = new FormData();
         form.append('files', Buffer.from(html, 'utf-8'), { filename: 'index.html', contentType: 'text/html' });
-        // Set paper size to A4 Landscape
-        form.append('paperWidth', '11.69');
-        form.append('paperHeight', '8.27');
+        // Set paper size exactly to match 1050x740 CSS canvas
+        form.append('paperWidth', '10.9375');
+        form.append('paperHeight', '7.7083');
         form.append('marginTop', '0');
         form.append('marginBottom', '0');
         form.append('marginLeft', '0');
         form.append('marginRight', '0');
+        form.append('preferCssPageSize', 'true');
         form.append('printBackground', 'true');
         
         const res = await axios.post('https://demo.gotenberg.dev/forms/chromium/convert/html', form, {
