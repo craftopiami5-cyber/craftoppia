@@ -439,11 +439,11 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     // 2. Logo Emblem (Centred at 420.94)
     const logoX = 420.94, logoY = 96;
     // Spark above green emblem
-    doc.circle(logoX, logoY - 20, 3).fillColor(pureGold).fill();
+    doc.circle(logoX, logoY - 30, 4.5).fillColor(pureGold).fill();
     // Forest Green stylized glyph
-    doc.circle(logoX, logoY, 13).fillColor(forestGreen).fill();
-    doc.circle(logoX, logoY, 9).fillColor("#ffffff").fill();
-    doc.circle(logoX, logoY, 4).fillColor(forestGreen).fill();
+    doc.circle(logoX, logoY, 19.5).fillColor(forestGreen).fill();
+    doc.circle(logoX, logoY, 13.5).fillColor("#ffffff").fill();
+    doc.circle(logoX, logoY, 6).fillColor(forestGreen).fill();
 
     // 3. Institution Name (English) - Located below the logo
     doc.fillColor(forestGreen).font(latFont(true)).fontSize(25)
