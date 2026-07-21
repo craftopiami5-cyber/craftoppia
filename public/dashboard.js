@@ -161,7 +161,7 @@ function renderTable(regs, totalCount) {
           </div>
         `;
       } else {
-        const adminToken = localStorage.getItem('adminToken') || '';
+        const adminToken = localStorage.getItem('admin_token') || '';
         const proxyUrl = `/api/admin/photo/${encodeURIComponent(reg.receipt_image_url)}${adminToken ? `?token=${adminToken}` : ''}`;
         receiptHtml += `
           <div style="margin-top: 6px;">
