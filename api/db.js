@@ -348,14 +348,6 @@ async function updateRegistrationStatus(regId, status, inviteLink = null, reject
     
     if (expiresAt) {
         data.expires_at = expiresAt;
-    } else if (status === "approved") {
-        try {
-            const settings = await getPaymentSettings();
-            const durationDays = parseInt(settings.access_duration_days) || 30;
-            data.expires_at = new Date(Date.now() + durationDays * 24 * 3600 * 1000).toISOString();
-        } catch (err) {
-            console.error("Error setting expires_at:", err.message);
-        }
     }
         
     try {
