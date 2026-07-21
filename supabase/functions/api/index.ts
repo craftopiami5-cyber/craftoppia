@@ -351,14 +351,25 @@ async function sendNextQuizQuestion(chatId: number) {
       };
       await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, parse_mode: "Markdown", reply_markup: kb });
     } else {
-      await supabase.from("user_quiz_progress").update({ last_completed_at: new Date().toISOString() }).eq("chat_id", chatId);
-
       const { data: reg } = await supabase.from("registrations").select("*").eq("chat_id", chatId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      const [lang] = getLangAndStep(reg);
+      const daysSinceReg = reg ? Math.floor((Date.now() - new Date(reg.created_at).getTime()) / (24 * 3600 * 1000)) + 1 : 1;
+      const maxAllowedDay = Math.min(maxDay, daysSinceReg);
 
-      const msg = getMsg(lang, "day_completed_msg").replace("{day}", String(day));
-
-      await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, parse_mode: "Markdown" });
+      if (day < maxAllowedDay) {
+        // Auto-advance to the next day immediately to allow catching up in a single day
+        await supabase.from("user_quiz_progress").update({
+          current_day: day + 1,
+          current_question_index: 0,
+          last_completed_at: new Date().toISOString()
+        }).eq("chat_id", chatId);
+        
+        await sendNextQuizQuestion(chatId);
+      } else {
+        await supabase.from("user_quiz_progress").update({ last_completed_at: new Date().toISOString() }).eq("chat_id", chatId);
+        const [lang] = getLangAndStep(reg);
+        const msg = getMsg(lang, "day_completed_msg").replace("{day}", String(day));
+        await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, parse_mode: "Markdown" });
+      }
     }
     return;
   }
@@ -788,6 +799,99 @@ async function handleRequest(req: Request): Promise<Response> {
   const path = url.pathname.replace(/^\/api\/?/, "").replace(/^\/functions\/v1\/api\/?/, "");
 
   try {
+    // --- CRON JOB FOR DAILY QUIZ & EXPIRATION CLEANUP ---
+    if (path === "cron/send_daily_quiz" || path.endsWith("/cron/send_daily_quiz")) {
+      console.log("[Cron] Running Deno Edge Function cron job...");
+      
+      // 1. Process expired registrations
+      try {
+        const { data: expiredRegs } = await supabase
+          .from("registrations")
+          .select("*")
+          .eq("status", "approved")
+          .lt("expires_at", new Date().toISOString());
+          
+        if (expiredRegs && expiredRegs.length > 0) {
+          console.log(`[Cron] Found ${expiredRegs.length} expired registrations.`);
+          for (const r of expiredRegs) {
+            console.log(`[Cron] Access expired for user ${r.chat_id}. Kicking...`);
+            await removeUserFromChannel(r.chat_id);
+            await supabase.from("registrations").update({ status: "expired" }).eq("id", r.id);
+          }
+        }
+      } catch (err: any) {
+        console.error("[Cron] Error processing expired registrations:", err.message);
+      }
+      
+      // 2. Process daily quiz for approved users
+      try {
+        const { data: regs } = await supabase
+          .from("registrations")
+          .select("*")
+          .eq("status", "approved");
+          
+        if (regs && regs.length > 0) {
+          const { data: maxQ } = await supabase.from("questions").select("day_number").order("day_number", { ascending: false }).limit(1).maybeSingle();
+          const maxQuizDay = maxQ ? maxQ.day_number : 10;
+          
+          for (const r of regs) {
+            const chatId = r.chat_id;
+            
+            // Get or create quiz progress
+            let { data: prog } = await supabase.from("user_quiz_progress").select("*").eq("chat_id", chatId).maybeSingle();
+            if (!prog) {
+              const { data: newProg } = await supabase.from("user_quiz_progress").insert({
+                chat_id: chatId,
+                current_day: 1,
+                current_question_index: 0,
+                joined_channel: true
+              }).select().single();
+              prog = newProg;
+            }
+            
+            if (prog && !prog.is_completed) {
+              // Calculate allowed day since registration
+              const daysSinceReg = Math.floor((Date.now() - new Date(r.created_at).getTime()) / (24 * 3600 * 1000)) + 1;
+              const maxAllowedDay = Math.min(maxQuizDay, daysSinceReg);
+              
+              const day = prog.current_day || 1;
+              const qIndex = prog.current_question_index || 0;
+              
+              // Load questions for the current day
+              const { data: questions } = await supabase.from("questions").select("*").eq("day_number", day).order("created_at", { ascending: true });
+              const dayQuestions = questions || [];
+              
+              if (day < maxAllowedDay && qIndex >= dayQuestions.length) {
+                // A new day is unlocked! Advance to next day.
+                await supabase.from("user_quiz_progress").update({
+                  current_day: day + 1,
+                  current_question_index: 0,
+                  last_sent_at: new Date().toISOString()
+                }).eq("chat_id", chatId);
+                await sendNextQuizQuestion(chatId);
+              } else if (qIndex < dayQuestions.length) {
+                // User hasn't finished the questions of their current day.
+                // Send them a reminder (current question) only if it's been >= 20 hours since last_sent_at (or if last_sent_at is null)
+                const lastSentStr = (prog as any).last_sent_at;
+                const shouldSend = !lastSentStr || (Date.now() - new Date(lastSentStr).getTime() >= 20 * 3600 * 1000);
+                
+                if (shouldSend) {
+                  await supabase.from("user_quiz_progress").update({
+                    last_sent_at: new Date().toISOString()
+                  }).eq("chat_id", chatId);
+                  await sendNextQuizQuestion(chatId);
+                }
+              }
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error("[Cron] Error processing daily quiz:", err.message);
+      }
+      
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // --- TELEGRAM BOT WEBHOOK ---
     if (path === "bot") {
       const update = await req.json();

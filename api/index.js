@@ -1594,55 +1594,19 @@ app.all('/api/cron/send_daily_quiz', async (req, res) => {
         return res.status(401).json({ error: "Unauthorized" });
     }
         
-    // 1. Check and process expired registrations
     try {
-        const expiredRegs = await db.getExpiredRegistrations();
-        console.log(`[Cron] Found ${expiredRegs.length} expired registrations to process.`);
-        for (const r of expiredRegs) {
-            console.log(`[Cron] Access expired for user ${r.chat_id} (registration ID ${r.id}). Removing from channel...`);
-            await removeUserFromChannel(r.chat_id);
-            await db.updateRegistrationStatus(r.id, "expired", r.invite_link);
-        }
+        console.log("[Cron Proxy] Forwarding cron trigger to Deno Edge Function...");
+        const response = await axios.post("https://pgnxsgysnvrgsbuecesc.supabase.co/functions/v1/api/cron/send_daily_quiz", {}, {
+            headers: {
+                "Authorization": `Bearer ${process.env.SUPABASE_KEY || ""}`
+            },
+            timeout: 120000 // 2 minutes timeout
+        });
+        return res.json(response.data);
     } catch (err) {
-        console.error("[Cron] Error processing expired registrations:", err.message);
+        console.error("[Cron Proxy] Error calling Deno Edge Function:", err.message);
+        return res.status(500).json({ error: err.message });
     }
-
-    const [regs] = await db.getRegistrationsPaginated(1, 1000, "approved");
-    
-    // Process in chunks to avoid Vercel 10s timeout while respecting Telegram rate limits
-    const chunkSize = 30;
-    for (let i = 0; i < regs.length; i += chunkSize) {
-        const chunk = regs.slice(i, i + chunkSize);
-        await Promise.all(chunk.map(async (r) => {
-            const chatId = r.chat_id;
-            try {
-                const prog = await db.getUserQuizProgress(chatId);
-                if (prog && !prog.is_completed) {
-                    const day = prog.current_day || 1;
-                    const qIndex = prog.current_question_index || 0;
-                    const qs = await db.getQuestionsByDay(day);
-                    
-                    if (qIndex >= qs.length && qs.length > 0) {
-                        const lastCompleted = prog.last_completed_at;
-                        if (lastCompleted) {
-                            const lastDt = parseIsoDatetime(lastCompleted);
-                            const now = new Date();
-                            if (lastDt && lastDt.toDateString() !== now.toDateString()) {
-                                await db.upsertUserQuizProgress(chatId, { current_day: day + 1, current_question_index: 0 });
-                                await sendNextQuizQuestion(chatId);
-                            }
-                        }
-                    } else {
-                        await sendNextQuizQuestion(chatId);
-                    }
-                }
-            } catch (err) {
-                console.error(`Error processing quiz for ${chatId}:`, err.message);
-            }
-        }));
-    }
-    
-    return res.json({ success: true });
 });
 
 // Database Webhook Receiver
