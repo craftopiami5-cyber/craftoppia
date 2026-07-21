@@ -434,10 +434,10 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     // ── SECTION 2: Header and Logo ─────────────────────────────────────────
     // 1. Institution Name (Amharic) - Located above the logo
     doc.fillColor(forestGreen).font(ethFont(true)).fontSize(31)
-       .text("ክራፍቶፒያ የእደጥበብ ሙያዎች ማሰልጠኛ ተቋም", 0, 30, { align: "center", width: 841.89 });
+       .text("ክራፍቶፒያ የእደጥበብ ሙያዎች ማሰልጠኛ ተቋም", 0, 35, { align: "center", width: 841.89 });
 
     // 2. Logo Emblem (Centred at 420.94)
-    const logoX = 420.94, logoY = 96;
+    const logoX = 420.94, logoY = 90;
     // Spark above green emblem
     doc.circle(logoX, logoY - 30, 4.5).fillColor(pureGold).fill();
     // Forest Green stylized glyph
@@ -447,21 +447,21 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
 
     // 3. Institution Name (English) - Located below the logo
     doc.fillColor(forestGreen).font(latFont(true)).fontSize(25)
-       .text("CRAFTOPIA HANDCRAFTS SCHOOL", 0, 120, { align: "center", width: 841.89 });
+       .text("CRAFTOPIA HANDCRAFTS SCHOOL", 0, 115, { align: "center", width: 841.89 });
 
     // 4. Certificate Title (Amharic)
     doc.fillColor(forestGreen).font(ethFont(true)).fontSize(24)
-       .text("የአጭር ጊዜ ስልጠና የምስክር ወረቀት", 0, 150, { align: "center", width: 841.89 });
+       .text("የአጭር ጊዜ ስልጠና የምስክር ወረቀት", 0, 143, { align: "center", width: 841.89 });
 
     // 5. Certificate Title (English)
     doc.fillColor(forestGreen).font(latFont(true)).fontSize(21)
-       .text("CERTIFICATE OF SHORT TERM TRAINING", 0, 178, { align: "center", width: 841.89 });
+       .text("CERTIFICATE OF SHORT TERM TRAINING", 0, 169, { align: "center", width: 841.89 });
 
     // ── Divider Lines (Double vertical lines in gold) ──────────────────────
     doc.lineWidth(1).strokeColor(antiqueGold);
-    doc.moveTo(417.5, 205).lineTo(417.5, 435).stroke();
+    doc.moveTo(417.5, 192).lineTo(417.5, 435).stroke();
     doc.lineWidth(2).strokeColor(antiqueGold);
-    doc.moveTo(421.5, 205).lineTo(421.5, 435).stroke();
+    doc.moveTo(421.5, 192).lineTo(421.5, 435).stroke();
 
     // Settings variables
     const programAm  = settings.cert_program_am  || "እደጥበብ";
@@ -472,55 +472,55 @@ async function generateCertificatePdf(name: string, regDate: string, finishDate:
     // ── SECTION 3: Main Body Text (Left-Side Column) ──────────────────────
     const lx = 65, lw = 320;
     // Line 1: ለ ________ (Name)
-    doc.fillColor(forestGreen).font(ethFont(false)).fontSize(12).text("ለ", lx + 20, 226);
+    doc.fillColor(forestGreen).font(ethFont(false)).fontSize(12).text("ለ", lx + 20, 212);
     doc.fillColor(forestGreen).font(autoFont(name, true)).fontSize(13)
-       .text(name, lx + 40, 222, { width: lw - 40, align: "center" });
-    doc.moveTo(lx + 35, 238).lineTo(lx + lw, 238).strokeColor(forestGreen).lineWidth(1).stroke();
+       .text(name, lx + 40, 208, { width: lw - 40, align: "center" });
+    doc.moveTo(lx + 35, 224).lineTo(lx + lw, 224).strokeColor(forestGreen).lineWidth(1).stroke();
 
     // Line 2: በክራፍቶፒያ የእደጥበብ ማሰልጠኛ ተቋም _____
-    doc.fillColor(forestGreen).font(ethFont(false)).fontSize(11).text("በክራፍቶፒያ የእደጥበብ ማሰልጠኛ ተቋም", lx, 260);
-    doc.moveTo(lx + 215, 272).lineTo(lx + lw, 272).strokeColor(forestGreen).lineWidth(1).stroke();
+    doc.fillColor(forestGreen).font(ethFont(false)).fontSize(11).text("በክራፍቶፒያ የእደጥበብ ማሰልጠኛ ተቋም", lx, 246);
+    doc.moveTo(lx + 215, 258).lineTo(lx + lw, 258).strokeColor(forestGreen).lineWidth(1).stroke();
     doc.fillColor(forestGreen).font(autoFont(durationAm, true)).fontSize(11)
-       .text(durationAm, lx + 215, 258, { width: lw - 215, align: "center" });
+       .text(durationAm, lx + 215, 244, { width: lw - 215, align: "center" });
 
     // Line 3: ሳምንት ለተሰጠው የ _____
-    doc.fillColor(forestGreen).font(ethFont(false)).fontSize(11).text("ሳምንት ለተሰጠው የ", lx, 295);
-    doc.moveTo(lx + 105, 307).lineTo(lx + lw, 307).strokeColor(forestGreen).lineWidth(1).stroke();
+    doc.fillColor(forestGreen).font(ethFont(false)).fontSize(11).text("ሳምንት ለተሰጠው የ", lx, 281);
+    doc.moveTo(lx + 105, 293).lineTo(lx + lw, 293).strokeColor(forestGreen).lineWidth(1).stroke();
     doc.fillColor(forestGreen).font(autoFont(programAm, true)).fontSize(11)
-       .text(programAm, lx + 105, 293, { width: lw - 105, align: "center" });
+       .text(programAm, lx + 105, 279, { width: lw - 105, align: "center" });
 
     // Line 4: ሙያ ስልጠና ተከታትሎ(ላ) በስኬት ላጠናቀቀ(ች) ይህ የምስክር ወረቀት ተሰጥቶታል(ታለች)፡፡
     doc.fillColor(forestGreen).font(ethFont(false)).fontSize(11)
-       .text("ሙያ ስልጠና ተከታትሎ(ላ) በስኬት ላጠናቀቀ(ች) ይህ የምስክር ወረቀት ተሰጥቶታል(ታለች)፡፡", lx, 330, { width: lw, align: "justify", lineGap: 6 });
+       .text("ሙያ ስልጠና ተከታትሎ(ላ) በስኬት ላጠናቀቀ(ች) ይህ የምስክር ወረቀት ተሰጥቶታል(ታለች)፡፡", lx, 316, { width: lw, align: "justify", lineGap: 6 });
 
     // ── SECTION 4: Main Body Text (Right-Side Column) ─────────────────────
     const rx = 455, rw = 320;
     // Line 1: To ________ (Name)
-    doc.fillColor(forestGreen).font(latFont(false)).fontSize(12).text("To", rx, 226);
+    doc.fillColor(forestGreen).font(latFont(false)).fontSize(12).text("To", rx, 212);
     doc.fillColor(forestGreen).font(autoFont(actualName2, true)).fontSize(13)
-       .text(actualName2, rx + 25, 222, { width: rw - 25, align: "center" });
-    doc.moveTo(rx + 20, 238).lineTo(rx + rw, 238).strokeColor(forestGreen).lineWidth(1).stroke();
+       .text(actualName2, rx + 25, 208, { width: rw - 25, align: "center" });
+    doc.moveTo(rx + 20, 224).lineTo(rx + rw, 224).strokeColor(forestGreen).lineWidth(1).stroke();
 
     // Line 2 & 3: THIS CERTIFICATE IS PROUDLY PRESENTED FOR / SUCCESSFULLY COMPLETING A SHORT-TERM TRAINING
     doc.fillColor(forestGreen).font(latFont(false)).fontSize(10.5)
-       .text("THIS CERTIFICATE IS PROUDLY PRESENTED FOR", rx, 260);
-    doc.text("SUCCESSFULLY COMPLETING A SHORT-TERM TRAINING", rx, 282);
+       .text("THIS CERTIFICATE IS PROUDLY PRESENTED FOR", rx, 246);
+    doc.text("SUCCESSFULLY COMPLETING A SHORT-TERM TRAINING", rx, 268);
 
     // Line 4: PROGRAM IN _______
-    doc.text("PROGRAM IN", rx, 304);
-    doc.moveTo(rx + 75, 316).lineTo(rx + rw, 316).strokeColor(forestGreen).lineWidth(1).stroke();
+    doc.text("PROGRAM IN", rx, 290);
+    doc.moveTo(rx + 75, 302).lineTo(rx + rw, 302).strokeColor(forestGreen).lineWidth(1).stroke();
     doc.fillColor(forestGreen).font(autoFont(programEn, true)).fontSize(10.5)
-       .text(programEn.toUpperCase(), rx + 75, 302, { width: rw - 75, align: "center" });
+       .text(programEn.toUpperCase(), rx + 75, 288, { width: rw - 75, align: "center" });
 
     // Line 5: AT CRAFTOPIA.
-    doc.fillColor(forestGreen).font(latFont(false)).fontSize(10.5).text("AT CRAFTOPIA.", rx, 328);
+    doc.fillColor(forestGreen).font(latFont(false)).fontSize(10.5).text("AT CRAFTOPIA.", rx, 314);
 
     // Line 6: THE TRAINING WAS CONDUCTED FOR _____ WEEK.
-    doc.text("THE TRAINING WAS CONDUCTED FOR", rx, 350);
-    doc.moveTo(rx + 195, 362).lineTo(rx + 270, 362).strokeColor(forestGreen).lineWidth(1).stroke();
+    doc.text("THE TRAINING WAS CONDUCTED FOR", rx, 336);
+    doc.moveTo(rx + 195, 348).lineTo(rx + 270, 348).strokeColor(forestGreen).lineWidth(1).stroke();
     doc.fillColor(forestGreen).font(autoFont(durationEn, true)).fontSize(10.5)
-       .text(durationEn, rx + 195, 348, { width: 75, align: "center" });
-    doc.fillColor(forestGreen).font(latFont(false)).text("WEEK.", rx + 275, 350);
+       .text(durationEn, rx + 195, 334, { width: 75, align: "center" });
+    doc.fillColor(forestGreen).font(latFont(false)).text("WEEK.", rx + 275, 336);
 
     // ── SECTION 5: Signature and Date Fields ──────────────────────────────
     // Left Side (Amharic Footer)
