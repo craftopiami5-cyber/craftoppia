@@ -419,7 +419,7 @@ function formatInviteLinksForUser(inviteLinkStr, lang) {
     const groupLink = links[1] || "";
     if (lang === "am") {
         let text = `ዋናው ቻናል፡ ${mainLink}`;
-        if (groupLink) text += `\nየውስጥ ግሩፕ፡ ${groupLink}`;
+        if (groupLink) text += `\nመወያያ ግሩፕ፡ ${groupLink}`;
         return text;
     } else if (lang === "om" || lang === "or") {
         let text = `Chaanaalii Guddaa: ${mainLink}`;
