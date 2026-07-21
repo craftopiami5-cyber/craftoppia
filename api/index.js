@@ -1586,6 +1586,19 @@ app.all('/api/cron/send_daily_quiz', async (req, res) => {
         return res.status(401).json({ error: "Unauthorized" });
     }
         
+    // 1. Check and process expired registrations
+    try {
+        const expiredRegs = await db.getExpiredRegistrations();
+        console.log(`[Cron] Found ${expiredRegs.length} expired registrations to process.`);
+        for (const r of expiredRegs) {
+            console.log(`[Cron] Access expired for user ${r.chat_id} (registration ID ${r.id}). Removing from channel...`);
+            await removeUserFromChannel(r.chat_id);
+            await db.updateRegistrationStatus(r.id, "expired", r.invite_link);
+        }
+    } catch (err) {
+        console.error("[Cron] Error processing expired registrations:", err.message);
+    }
+
     const [regs] = await db.getRegistrationsPaginated(1, 1000, "approved");
     
     // Process in chunks to avoid Vercel 10s timeout while respecting Telegram rate limits

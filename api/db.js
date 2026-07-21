@@ -830,7 +830,21 @@ async function getReferrals(referrerChatId) {
     }
 }
 
+async function getExpiredRegistrations() {
+    const nowIso = new Date().toISOString();
+    const url = `${SUPABASE_URL}/rest/v1/registrations?status=eq.approved&expires_at=lt.${nowIso}`;
+    try {
+        const response = await axios.get(url, { headers: getHeaders() });
+        return response.data;
+    } catch (e) {
+        console.error("Error getting expired registrations:", e.message);
+        const now = new Date();
+        return Object.values(OFFLINE_DB.registrations).filter(r => r.status === "approved" && r.expires_at && new Date(r.expires_at) < now);
+    }
+}
+
 module.exports = {
+    getExpiredRegistrations,
     getReferrals,
     getRegistration,
     getRegistrationByPhone,

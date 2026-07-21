@@ -298,6 +298,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.01); }
 .badge-pending { background: var(--warning-bg); color: var(--warning); }
 .badge-approved { background: var(--success-bg); color: var(--success); }
 .badge-declined { background: var(--danger-bg); color: var(--danger); }
+.badge-expired { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
 
 .ref-badge {
   background: rgba(99, 102, 241, 0.12);
