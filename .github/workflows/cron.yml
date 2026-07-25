@@ -2,8 +2,8 @@ name: Send Quiz Cron Job
 
 on:
   schedule:
-    # Run every 3 hours
-    - cron: '0 */3 * * *'
+    # Run every minute
+    - cron: '*/1 * * * *'
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
 
@@ -25,10 +25,10 @@ jobs:
           
           # Send request with Cron Secret if it is configured
           if [ -n "${{ secrets.CRON_SECRET }}" ]; then
-            curl -X POST "$CLEAN_URL/api/cron/send_daily_quiz" \
+            curl -X POST "$CLEAN_URL/api/cron/send_daily_quiz?interval=1m" \
               -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
               -f || exit 1
           else
-            curl -X POST "$CLEAN_URL/api/cron/send_daily_quiz" \
+            curl -X POST "$CLEAN_URL/api/cron/send_daily_quiz?interval=1m" \
               -f || exit 1
           fi

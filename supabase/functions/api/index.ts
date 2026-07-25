@@ -275,7 +275,7 @@ async function sendTelegramRequest(method: string, payload: any) {
   }
 }
 
-async function sendNextQuizQuestion(chatId: number) {
+async function sendNextQuizQuestion(chatId: number, isTest1Min = false) {
   const { data: prog } = await supabase.from("user_quiz_progress").select("*").eq("chat_id", chatId).maybeSingle();
   if (!prog) return;
 
@@ -354,7 +354,8 @@ async function sendNextQuizQuestion(chatId: number) {
       await sendTelegramRequest("sendMessage", { chat_id: chatId, text: msg, parse_mode: "Markdown", reply_markup: kb });
     } else {
       const { data: reg } = await supabase.from("registrations").select("*").eq("chat_id", chatId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      const daysSinceReg = reg ? Math.floor((Date.now() - new Date(reg.created_at).getTime()) / (24 * 3600 * 1000)) + 1 : 1;
+      const msDiff = reg ? (Date.now() - new Date(reg.created_at).getTime()) : 0;
+      const daysSinceReg = reg ? (isTest1Min ? Math.floor(msDiff / (60 * 1000)) + 1 : Math.floor(msDiff / (24 * 3600 * 1000)) + 1) : 1;
       const maxAllowedDay = Math.min(maxDay, daysSinceReg);
 
       if (day < maxAllowedDay) {
@@ -365,7 +366,7 @@ async function sendNextQuizQuestion(chatId: number) {
           last_completed_at: new Date().toISOString()
         }).eq("chat_id", chatId);
         
-        await sendNextQuizQuestion(chatId);
+        await sendNextQuizQuestion(chatId, isTest1Min);
       } else {
         await supabase.from("user_quiz_progress").update({ last_completed_at: new Date().toISOString() }).eq("chat_id", chatId);
         const [lang] = getLangAndStep(reg);
@@ -805,6 +806,11 @@ async function handleRequest(req: Request): Promise<Response> {
     if (path === "cron/send_daily_quiz" || path.endsWith("/cron/send_daily_quiz")) {
       console.log("[Cron] Running Deno Edge Function cron job...");
       
+      const isTest1Min = url.searchParams.get("interval") === "1m" || Deno.env.get("CRON_INTERVAL") === "1m";
+      if (isTest1Min) {
+        console.log("[Cron] Running in 1-minute interval testing mode.");
+      }
+      
       // 1. Process expired registrations
       try {
         const { data: expiredRegs } = await supabase
@@ -853,7 +859,10 @@ async function handleRequest(req: Request): Promise<Response> {
             
             if (prog && !prog.is_completed) {
               // Calculate allowed day since registration
-              const daysSinceReg = Math.floor((Date.now() - new Date(r.created_at).getTime()) / (24 * 3600 * 1000)) + 1;
+              const msDiff = Date.now() - new Date(r.created_at).getTime();
+              const daysSinceReg = isTest1Min 
+                ? Math.floor(msDiff / (60 * 1000)) + 1 
+                : Math.floor(msDiff / (24 * 3600 * 1000)) + 1;
               const maxAllowedDay = Math.min(maxQuizDay, daysSinceReg);
               
               const day = prog.current_day || 1;
@@ -868,20 +877,21 @@ async function handleRequest(req: Request): Promise<Response> {
                 await supabase.from("user_quiz_progress").update({
                   current_day: day + 1,
                   current_question_index: 0,
-                  last_sent_at: new Date().toISOString()
+                  last_completed_at: new Date().toISOString()
                 }).eq("chat_id", chatId);
-                await sendNextQuizQuestion(chatId);
+                await sendNextQuizQuestion(chatId, isTest1Min);
               } else if (qIndex < dayQuestions.length) {
                 // User hasn't finished the questions of their current day.
-                // Send them a reminder (current question) only if it's been >= 20 hours since last_sent_at (or if last_sent_at is null)
-                const lastSentStr = (prog as any).last_sent_at;
-                const shouldSend = !lastSentStr || (Date.now() - new Date(lastSentStr).getTime() >= 20 * 3600 * 1000);
+                // Send them a reminder (current question) only if it's been >= 24 hours since last_completed_at (or if last_completed_at is null)
+                const lastCompletedStr = prog.last_completed_at;
+                const limit = isTest1Min ? 60 * 1000 : 24 * 3600 * 1000;
+                const shouldSend = !lastCompletedStr || (Date.now() - new Date(lastCompletedStr).getTime() >= limit);
                 
                 if (shouldSend) {
                   await supabase.from("user_quiz_progress").update({
-                    last_sent_at: new Date().toISOString()
+                    last_completed_at: new Date().toISOString()
                   }).eq("chat_id", chatId);
-                  await sendNextQuizQuestion(chatId);
+                  await sendNextQuizQuestion(chatId, isTest1Min);
                 }
               }
             }

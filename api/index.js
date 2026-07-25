@@ -1596,7 +1596,8 @@ app.all('/api/cron/send_daily_quiz', async (req, res) => {
         
     try {
         console.log("[Cron Proxy] Forwarding cron trigger to Deno Edge Function...");
-        const response = await axios.post("https://pgnxsgysnvrgsbuecesc.supabase.co/functions/v1/api/cron/send_daily_quiz", {}, {
+        const queryParams = new URL(req.url, `http://${req.headers.host || 'localhost'}`).search;
+        const response = await axios.post(`https://pgnxsgysnvrgsbuecesc.supabase.co/functions/v1/api/cron/send_daily_quiz${queryParams}`, {}, {
             headers: {
                 "Authorization": `Bearer ${process.env.SUPABASE_KEY || ""}`
             },
