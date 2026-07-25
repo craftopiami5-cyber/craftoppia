@@ -1,8 +1,14 @@
-name: Send Quiz Cron Job
+name: Send Quiz Cron Job (Backup)
+
+# NOTE: Supabase pg_cron is now the PRIMARY scheduler.
+# This GitHub Actions workflow is kept as a BACKUP / manual test trigger only.
+# It runs every minute using ?interval=1m (1-minute test mode).
+# For production, Supabase cron calls the endpoint WITHOUT ?interval=1m
+# so the 24-hour throttle via last_completed_at applies.
 
 on:
   schedule:
-    # Run every minute
+    # Backup: run every minute (1-minute test mode)
     - cron: '*/1 * * * *'
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
@@ -11,7 +17,7 @@ jobs:
   trigger_cron:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Daily Quiz Cron Endpoint
+      - name: Trigger Daily Quiz Cron Endpoint (Test Mode)
         run: |
           if [ -z "${{ secrets.APP_URL }}" ]; then
             echo "Error: APP_URL secret is not set in GitHub repository secrets."
@@ -21,7 +27,7 @@ jobs:
           # Clean URL trailing slash if present
           CLEAN_URL=$(echo "${{ secrets.APP_URL }}" | sed 's/\/$//')
           
-          echo "Triggering cron job at: $CLEAN_URL/api/cron/send_daily_quiz"
+          echo "Triggering cron job at: $CLEAN_URL/api/cron/send_daily_quiz?interval=1m"
           
           # Send request with Cron Secret if it is configured
           if [ -n "${{ secrets.CRON_SECRET }}" ]; then

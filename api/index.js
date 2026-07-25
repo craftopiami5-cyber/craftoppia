@@ -1577,8 +1577,52 @@ app.all('/api/admin/migrate', async (req, res) => {
         }
         
         await loadDbTranslations();
+
+        // --- Supabase Cron Job Setup ---
+        // Enable pg_cron and pg_net extensions (safe, idempotent)
+        let cronStatus = "skipped";
+        try {
+            await client.query("CREATE EXTENSION IF NOT EXISTS pg_cron;");
+            await client.query("CREATE EXTENSION IF NOT EXISTS pg_net;");
+
+            // Remove existing job if present
+            await client.query(`
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'craftopia-send-daily-quiz') THEN
+                        PERFORM cron.unschedule('craftopia-send-daily-quiz');
+                    END IF;
+                END $$;
+            `);
+
+            // Schedule cron to run every minute
+            // The Edge Function throttles sends to 24h via last_completed_at
+            const supabaseAnonKey = process.env.SUPABASE_KEY || "sb_publishable_i1qSlBg5OBbnLpSHuDN4UA_bH6bWAVQ";
+            const supabaseProjectUrl = (process.env.SUPABASE_URL || "https://pgnxsgysnvrgsbuecesc.supabase.co").replace(/\/$/, "");
+            await client.query(`
+                SELECT cron.schedule(
+                    'craftopia-send-daily-quiz',
+                    '* * * * *',
+                    $$
+                        SELECT net.http_post(
+                            url     := '${supabaseProjectUrl}/functions/v1/api/cron/send_daily_quiz',
+                            headers := jsonb_build_object(
+                                'Content-Type',  'application/json',
+                                'Authorization', 'Bearer ${supabaseAnonKey}'
+                            ),
+                            body    := '{}'::jsonb
+                        );
+                    $$
+                );
+            `);
+            cronStatus = "scheduled";
+        } catch (cronErr) {
+            // pg_cron may not be available on all Supabase plans
+            console.warn("[Migrate] pg_cron setup skipped:", cronErr.message);
+            cronStatus = "unavailable (run schema_cron.sql manually in Supabase SQL Editor)";
+        }
         
-        return res.json({ success: true, message: "Migration completed successfully!" });
+        return res.json({ success: true, message: "Migration completed successfully!", cronJob: cronStatus });
     } catch (e) {
         return res.status(500).json({ success: false, error: e.message });
     } finally {
